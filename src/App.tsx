@@ -1,51 +1,102 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import { createOpenAI } from '@ai-sdk/openai'
+import { useChat } from '@ai-sdk/react'
+import { fetch as tauriFetch } from '@tauri-apps/plugin-http'
+import { streamText } from 'ai'
+// Configure AI SDK to use Tauri's fetch
+// const customFetch = async (url, options) => {
+//   // Use tauriFetch instead of window.fetch
+//   return tauriFetch(url, options)
+// }
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+const debugFetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  console.log('fetch', input, init)
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
+  const options = init as RequestInit & { body: string }
+  const body = JSON.parse(options.body)
+
+  try {
+    // Make a direct request to Ollama using Tauri's fetch
+    const response = await tauriFetch('http://localhost:11434/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama3.2',
+        messages: body.messages,
+        stream: true,
+      }),
+    })
+
+    console.log('Response status:', response.status)
+    console.log('Response body:', response.body)
+
+    // Return the raw response stream
+    return new Response(response.body, {
+      headers: response.headers,
+      status: response.status,
+    })
+  } catch (error) {
+    console.log('Error details:', error)
+    console.error('Error calling Ollama:', error)
+    throw error
   }
-
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
 }
 
-export default App;
+const openai = createOpenAI({
+  baseURL: 'http://localhost:11434/api/chat',
+  fetch: async (input: RequestInfo | URL, init?: RequestInit) => {
+    console.log('tauri fetch', input, init)
+    return tauriFetch(input, init)
+  },
+})
+
+const fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+  console.log('fetch', input, init)
+
+  const options = init as RequestInit & { body: string }
+  const body = JSON.parse(options.body)
+
+  try {
+    console.log('aaaa')
+
+    // Use streamText with openai model
+    const result = await streamText({
+      model: openai('llama3.2'),
+      messages: body.messages,
+    })
+
+    console.log('bbbb', result)
+
+    // Return the data stream response
+    return result.toDataStreamResponse()
+  } catch (error) {
+    console.log('cccc')
+    console.error('Error calling Ollama:', error)
+    throw error
+  }
+}
+
+export default function App() {
+  const { messages, input, handleInputChange, handleSubmit } = useChat({
+    // api: 'http://localhost:11434/api/chat',
+    fetch: debugFetch,
+  })
+
+  return (
+    <div className="chat-container">
+      <div className="messages">
+        {messages.map((message, i) => (
+          <div key={i} className={`message ${message.role}`}>
+            {message.content}
+          </div>
+        ))}
+      </div>
+
+      <form onSubmit={handleSubmit}>
+        <input value={input} onChange={handleInputChange} placeholder="Say something..." />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  )
+}

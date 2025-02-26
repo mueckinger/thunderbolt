@@ -79,10 +79,15 @@ chrono = "0.4.39"
 uuid = "1.14.0"
 html2text = "0.14.0"
 # Base versions without Metal for all platforms
-candle-nn = { version = "0.8.3", default-features = false }
-candle-core = { version = "0.8.3", default-features = false }
-candle-transformers = { version = "0.8.3", default-features = false }
-mistralrs = { git = "https://github.com/EricLBuehler/mistral.rs.git", rev = "e2f9648cbb6e4b8a6ac1d9e44df5900210fa5862", default-features = false }
+candle-nn = { version = "0.8.3", features = ["metal"] }
+candle-core = { version = "0.8.3", features = ["metal"] }
+candle-transformers = { version = "0.8.3", features = ["metal"] }
+mistralrs = { git = "https://github.com/EricLBuehler/mistral.rs.git", rev = "e2f9648cbb6e4b8a6ac1d9e44df5900210fa5862", features = [
+    "metal"
+] }
+tauri-plugin-devtools = "2.0.0"
+tauri-plugin-http = "2"
+tauri-plugin-websocket = "2"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.

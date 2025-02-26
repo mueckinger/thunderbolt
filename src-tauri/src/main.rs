@@ -12,6 +12,23 @@ use entity::*;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    // This should be called as early in the execution of the app as possible
+    #[cfg(debug_assertions)] // only enable instrumentation in development builds
+    let devtools = tauri_plugin_devtools::init();
+
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_websocket::init())
+        .plugin(tauri_plugin_http::init());
+
+    #[cfg(debug_assertions)]
+    {
+        builder = builder.plugin(devtools);
+    }
+
+    builder
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
+
     // Handle the Result and Option types
     let body = imap_client::fetch_inbox_top().unwrap().unwrap();
 
