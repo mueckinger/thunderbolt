@@ -93,30 +93,27 @@ futures = "0.3.31"
 http = "1.2.0"
 tauri-plugin-process = "2"
 regex = "1.11.1"
+keyring = { version = "3.6.2", features = [
+    "apple-native",
+    "windows-native",
+    "sync-secret-service"
+] }
+tauri-plugin-stronghold = "2.2.0"
+tauri-plugin-fs = "2"
+argon2 = "0.5.3"
 
 [profile.dev]
 incremental = true # Compile your binary in smaller steps.
 rustflags = ["-C", "target-feature=+fp16,+fhm"]
 
-# Always run candle in release mode - it will hang in debug mode.
-[profile.dev.package.candle-nn]
-opt-level = 3
-debug = false
-
-# Always run candle in release mode - it will hang in debug mode.
-[profile.dev.package.candle-core]
-opt-level = 3
-debug = false
-
-# Always run candle in release mode - it will hang in debug mode.
-[profile.dev.package.candle-transformers]
-opt-level = 3
-debug = false
-
-# Always run mistralrs in release mode - it will hang in debug mode.
-[profile.dev.package.mistralrs]
-opt-level = 3
-debug = false
+[profile.dev.package]
+"tauri-plugin-stronghold" = { opt-level = 3, debug = false }
+"stronghold-runtime" = { opt-level = 3, debug = false }
+"argon2" = { opt-level = 3, debug = false }
+"candle-nn" = { opt-level = 3, debug = false }
+"candle-core" = { opt-level = 3, debug = false }
+"candle-transformers" = { opt-level = 3, debug = false }
+"mistralrs" = { opt-level = 3, debug = false }
 
 [profile.release]
 codegen-units = 1 # Allows LLVM to perform better optimization.

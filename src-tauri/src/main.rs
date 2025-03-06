@@ -6,9 +6,10 @@ mod embedding;
 mod imap_client;
 
 use anyhow::Result;
+use keyring::Entry;
 use sea_orm::ActiveModelTrait;
 use std::env;
-use tauri::{command, ActivationPolicy};
+use tauri::{command, ActivationPolicy, Manager};
 
 use entity::{message::Message, *};
 
@@ -53,6 +54,42 @@ async fn fetch_inbox_top(count: Option<usize>) -> Result<Vec<Message>, String> {
     imap_client::fetch_inbox_top(Some(3)).map_err(|e| e.to_string())
 }
 
+#[command]
+async fn get_or_create_stronghold_password(
+    service_name: String,
+    username: String,
+) -> Result<String, String> {
+    #[cfg(debug_assertions)]
+    {
+        // In debug mode, always return "password"
+        return Ok("password".to_string());
+    }
+
+    // In release mode, use the keyring
+    #[cfg(not(debug_assertions))]
+    {
+        // Try to load existing password from system keyring
+        match Entry::new(&service_name, &username) {
+            Ok(entry) => match entry.get_password() {
+                Ok(password) => Ok(password),
+                Err(_) => {
+                    // Password doesn't exist yet, prompt user
+                    // In a real app, you would show a UI here
+                    // Generate a truly random password using UUID
+                    let new_password = uuid::Uuid::new_v4().to_string();
+
+                    // Store the new password in the keyring
+                    entry
+                        .set_password(&new_password)
+                        .map_err(|e| e.to_string())?;
+                    Ok(new_password.to_string())
+                }
+            },
+            Err(e) => Err(format!("Failed to create keyring entry: {}", e)),
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     // This should be called as early in the execution of the app as possible
@@ -63,10 +100,58 @@ async fn main() -> Result<()> {
         .plugin(tauri_plugin_websocket::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_fs::init())
+        .setup(|app| {
+            let salt_path = app
+                .path()
+                .app_data_dir()
+                .expect("could not resolve app data path")
+                .join("salt.txt");
+
+            // Use a custom password hash function with faster Argon2 parameters
+            app.handle().plugin(
+                tauri_plugin_stronghold::Builder::new(move |password: &str| {
+                    use argon2::{Argon2, Params};
+
+                    // Read or create salt
+                    let salt = if std::path::Path::new(&salt_path).exists() {
+                        std::fs::read(&salt_path).unwrap_or_else(|_| {
+                            let s = uuid::Uuid::new_v4().as_bytes().to_vec();
+                            let _ = std::fs::write(&salt_path, &s);
+                            s
+                        })
+                    } else {
+                        let s = uuid::Uuid::new_v4().as_bytes().to_vec();
+                        let _ = std::fs::write(&salt_path, &s);
+                        s
+                    };
+
+                    // Fast Argon2 parameters for development
+                    let params = Params::new(
+                        1024, // Lower memory cost (1MB)
+                        1,    // Fewer iterations
+                        1,    // Fewer parallelism
+                        None,
+                    )
+                    .unwrap();
+
+                    // Hash the password
+                    let mut output = vec![0u8; 32]; // 32-byte output
+                    Argon2::default()
+                        .hash_password_into(password.as_bytes(), &salt, &mut output)
+                        .unwrap();
+
+                    output
+                })
+                .build(),
+            )?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             get_openai_api_key,
             toggle_dock_icon, // Add the new command
             fetch_inbox_top,
+            get_or_create_stronghold_password,
         ]);
 
     // Set the activation policy to accessory on macOS to prevent the app from being shown in the dock
