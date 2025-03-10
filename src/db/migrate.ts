@@ -1,5 +1,5 @@
-import { migrations } from '@/db/generated/migrations'
-import { sqlite } from './database'
+import { migrations } from '@/drizzle/_migrations'
+import Database from '@/lib/libsql'
 
 export type ProxyMigrator = (migrationQueries: string[]) => Promise<void>
 
@@ -21,7 +21,7 @@ function splitSqlStatements(sql: string): string[] {
  *
  * @returns A promise that resolves when the migrations are complete.
  */
-export async function migrate() {
+export async function migrate({ sqlite }: { sqlite: Database }) {
   const migrationTableCreate = /*sql*/ `
 		CREATE TABLE IF NOT EXISTS "__drizzle_migrations" (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

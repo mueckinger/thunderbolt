@@ -2,9 +2,10 @@ import './index.css'
 
 import { JSXElement, onMount } from 'solid-js'
 
+import { initializeDrizzleDatabase } from './db/database'
+import { migrate } from './db/migrate'
 import { createAppDataDir } from './lib/fs'
 import { createTray } from './lib/tray'
-import { migrate } from './db/migrate'
 
 const init = async () => {
   createTray()
@@ -15,7 +16,9 @@ const init = async () => {
   // const libsql = await Database.load('data/local.db')
   // console.log('🚀 ~ db:', libsql)
 
-  await migrate()
+  const { sqlite } = await initializeDrizzleDatabase()
+
+  await migrate({ sqlite })
 
   // // Create the setting table if it doesn't exist
   // await libsql.execute(`

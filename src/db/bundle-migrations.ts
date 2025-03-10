@@ -30,7 +30,7 @@ function sanitizeSql(sql: string): string {
 export async function bundleMigrations(options?: { migrationsDir?: string; outputFile?: string; silent?: boolean }): Promise<number> {
   // Configuration - simplified paths since we're always calling from root
   const MIGRATIONS_DIR = options?.migrationsDir ?? './src/drizzle'
-  const OUTPUT_FILE = options?.outputFile ?? './src/db/generated/migrations.ts'
+  const OUTPUT_FILE = options?.outputFile ?? './src/drizzle/_migrations.ts'
   const silent = options?.silent ?? false
 
   // Ensure directories exist

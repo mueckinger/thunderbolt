@@ -15,6 +15,7 @@ export default defineConfig(async () => ({
       async buildStart() {
         bundleMigrations({
           migrationsDir: path.resolve(__dirname, 'src/drizzle'),
+          outputFile: path.resolve(__dirname, 'src/drizzle/_migrations.ts'),
         })
       },
     },
