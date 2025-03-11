@@ -1,23 +1,18 @@
 import { Field as ArkField } from '@ark-ui/solid'
-import { createForm, required } from '@modular-forms/solid'
+import { createForm, getValues, required, reset } from '@modular-forms/solid'
 
 import { Button } from '@/components/button'
 import { Card, CardContent } from '@/components/card'
+import { useDrizzle } from '@/components/drizzle'
 import { Input } from '@/components/input'
-import { setSetting } from '@/lib/commands'
-import { createResource, createSignal, Show, Suspense } from 'solid-js'
-
-type AccountForm = {
-  hostname: string
-  port: number
-  username: string
-  password: string
-}
+import { getSettings, setSettings } from '@/dal'
+import { Settings } from '@/types'
+import { createEffect, createResource, Show, Suspense } from 'solid-js'
 
 export default function AccountsSettings() {
-  const [formValues, setFormValues] = createSignal<AccountForm>()
+  const context = useDrizzle()
 
-  const [formStore, { Form, Field }] = createForm<AccountForm>({
+  const [formStore, { Form, Field }] = createForm<Settings>({
     initialValues: {
       hostname: '127.0.0.1',
       port: 3000,
@@ -26,16 +21,21 @@ export default function AccountsSettings() {
     },
   })
 
-  const [data] = createResource(formValues, async (formValues: AccountForm) => {
-    for (const key in formValues) {
-      const value = formValues[key as keyof AccountForm]
-      await setSetting(key, value.toString())
-    }
+  const [initialSettings] = createResource<Settings>(() => getSettings(context.db, ['hostname', 'port', 'username', 'password']))
 
-    console.log('setting data', formValues)
-
-    return { success: true, message: 'Data loaded after 5 second delay' }
+  createEffect(() => {
+    console.log('initialSettings', initialSettings())
+    reset(formStore, {
+      initialValues: initialSettings(),
+    })
   })
+
+  const [submitData] = createResource(
+    () => formStore.submitCount || null,
+    async () => {
+      await setSettings(context.db, getValues(formStore))
+    }
+  )
 
   return (
     <>
@@ -43,14 +43,14 @@ export default function AccountsSettings() {
         <Card>
           <CardContent>
             <Suspense fallback={<div>Loading...</div>}>
-              <Show when={data.loading}>
+              <Show when={submitData.loading}>
                 <p>Loading...</p>
               </Show>
             </Suspense>
             <Form
               onSubmit={(e) => {
                 console.log('eee', e)
-                setFormValues(e)
+                // setFormValues(e)
               }}
               class="flex flex-col gap-4"
             >
