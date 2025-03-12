@@ -2,6 +2,13 @@ import { ReasoningUIPart, SourceUIPart, TextUIPart, ToolInvocationUIPart } from 
 import { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy'
 import * as schema from './db/schema'
 import Database from './lib/libsql'
+import { Settings as SettingsType } from './types'
+
+export type InitData = {
+  db: SqliteRemoteDatabase<typeof schema>
+  sqlite: Database
+  settings: SettingsType
+}
 
 export type ChatMessagePart = TextUIPart | ReasoningUIPart | ToolInvocationUIPart | SourceUIPart
 export type ChatMessageRole = 'system' | 'user' | 'assistant' | 'data'
