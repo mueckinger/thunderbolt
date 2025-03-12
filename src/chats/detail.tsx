@@ -1,6 +1,7 @@
 import { useDrizzle } from '@/db/provider'
 import { chatMessagesTable } from '@/db/schema'
 import { useSettings } from '@/settings/provider'
+import { ChatMessagePart } from '@/types'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Message } from 'ai'
 import { eq } from 'drizzle-orm'
@@ -66,7 +67,15 @@ export default function ChatDetailPage() {
     if (!params.chatThreadId) return
 
     const lastMessage = response.messages[response.messages.length - 1]
-    await addMessageMutation.mutateAsync(lastMessage)
+
+    const parts: ChatMessagePart[] = typeof lastMessage.content === 'object' ? lastMessage.content : []
+    const content = lastMessage.content ? lastMessage.content : parts.find((part) => part.type === 'text')?.text || ''
+
+    await addMessageMutation.mutateAsync({
+      ...lastMessage,
+      parts,
+      content,
+    })
   }
 
   useEffect(() => {
