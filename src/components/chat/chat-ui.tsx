@@ -54,14 +54,14 @@ export default function ChatUI({ chatHelpers }: ChatUIProps) {
           <Input variant="ghost" autoFocus value={chatHelpers.input} onChange={chatHelpers.handleInputChange} placeholder="Say something..." className="flex-1 px-4 py-2   " />
           <div className="flex gap-2 justify-between">
             <div className="flex gap-2">
-              <Button variant="outline" className={`h-8 w-8 rounded-full p-0 flex items-center justify-center`}>
+              <Button variant="outline" className={`h-6 w-6 rounded-full flex items-center justify-center`}>
                 <Plus className="size-4" />
               </Button>
-              <Button variant="outline" className={`h-8 w-8 rounded-full p-0 flex items-center justify-center`}>
+              <Button variant="outline" className={`h-6 w-6 rounded-full flex items-center justify-center`}>
                 <Mic className="size-4" />
               </Button>
             </div>
-            <Button type="submit" variant="default" className="h-8 w-8 rounded-full p-0 flex items-center justify-center">
+            <Button type="submit" variant="default" className="h-6 w-6 rounded-full flex items-center justify-center">
               <ArrowUp className="size-4" />
             </Button>
           </div>
