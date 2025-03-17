@@ -62,7 +62,7 @@ export function ChatLayout() {
           </div>
           <div className="flex flex-col gap-2">
             {chatThreads.map((thread) => (
-              <ChatNavButton key={thread.id} asChild className="justify-start" chatTitle={thread.id}>
+              <ChatNavButton key={thread.id} asChild threadId={thread.id} className="justify-start" chatTitle={thread.id}>
                 <Link to={`/chats/${thread.id}`}>{thread.title}</Link>
               </ChatNavButton>
             ))}
