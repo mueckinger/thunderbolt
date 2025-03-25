@@ -1,7 +1,7 @@
 import { emailMessagesTable, emailThreadsTable, embeddingsTable } from '@/db/schema'
 import { DrizzleContextType } from '@/types'
 import { invoke } from '@tauri-apps/api/core'
-import { eq, sql } from 'drizzle-orm'
+import { eq, isNotNull, sql } from 'drizzle-orm'
 
 /**
  * Initializes the embedder model in the backend
@@ -34,9 +34,9 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
  * Searches for similar email messages based on text similarity
  * @param searchText The text to search for
  * @param limit The maximum number of results to return (default: 5)
- * @returns A promise that resolves to an array of matching email messages
+ * @returns A promise that resolves to an array of matching email threads with their messages
  */
-export async function search(db: DrizzleContextType['db'], searchText: string, limit: number = 5): Promise<any[]> {
+export async function search(db: DrizzleContextType['db'], searchText: string, limit: number = 5) {
   try {
     const [embedding] = await generateEmbeddings([searchText])
 
@@ -46,19 +46,35 @@ export async function search(db: DrizzleContextType['db'], searchText: string, l
     `)
     console.log('Index Created (If Not Exists):', indexCreationResult)
 
+    // Get the top matching threads based on embedding similarity with aggregated messages
     const results = await db
       .select({
         distance: sql`vector_distance_cos(${embeddingsTable.embedding}, vector32(${JSON.stringify(embedding)}))`.as('distance'),
-        email_thread_id: embeddingsTable.email_thread_id,
-        email_message: emailMessagesTable,
+        email_thread_id: emailThreadsTable.id,
+        email_thread: emailThreadsTable,
+        as_text: embeddingsTable.as_text,
       })
       .from(sql`vector_top_k('embeddings_index', vector32(${JSON.stringify(embedding)}), ${limit}) as r`)
       .leftJoin(embeddingsTable, sql`${embeddingsTable}.rowid = r.id`)
       .leftJoin(emailThreadsTable, eq(emailThreadsTable.id, embeddingsTable.email_thread_id))
-      .leftJoin(emailMessagesTable, eq(emailMessagesTable.email_thread_id, emailThreadsTable.id))
+      .where(isNotNull(embeddingsTable.email_thread_id))
+      .groupBy(emailThreadsTable.id)
       .orderBy(sql`distance ASC`)
 
-    return results
+    // Fetch messages for each thread
+    const resultsWithMessages = await Promise.all(
+      results.map(async (result) => {
+        const email_messages = await db.select().from(emailMessagesTable).where(eq(emailMessagesTable.email_thread_id, result.email_thread_id!)).orderBy(emailMessagesTable.date)
+
+        return {
+          ...result,
+          email_messages,
+        }
+      })
+    )
+
+    console.log('Results:', resultsWithMessages)
+    return resultsWithMessages
   } catch (error) {
     console.error('Failed to search similar messages:', error)
     throw error

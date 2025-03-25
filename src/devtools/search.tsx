@@ -112,8 +112,8 @@ export default function SearchSection() {
                           </div>
                           <span className="text-sm font-medium">{(1 - (result.distance || 0)).toFixed(3)}</span>
                         </div>
-                        <div className="text-sm font-medium truncate">{result.email_message?.subject || 'No subject'}</div>
-                        <div className="text-xs text-gray-500 dark:text-gray-400 text-right">{result.email_message?.date ? new Date(result.email_message.date).toLocaleString() : 'Unknown date'}</div>
+                        <div className="text-sm font-medium truncate">{result.email_thread?.subject || 'No subject'}</div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 text-right">{result.email_thread?.date ? new Date(result.email_thread.date).toLocaleString() : 'Unknown date'}</div>
                       </div>
                     </AccordionTrigger>
                     <AccordionContent className="border-t border-gray-100 dark:border-gray-800">
@@ -125,14 +125,19 @@ export default function SearchSection() {
 
                         <TabsContent value="messages" className="px-4 pb-4">
                           <div className="space-y-4">
-                            {/* We would need to fetch the messages for this thread here */}
-                            {result.email_message && (
-                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
-                                <div className="flex justify-between mb-2">
-                                  <div className="font-medium">{result.email_message.from}</div>
-                                  <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(result.email_message.date).toLocaleString()}</div>
+                            {result.email_messages &&
+                              result.email_messages.map((message, msgIndex) => (
+                                <div key={msgIndex} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                  <div className="flex justify-between mb-2">
+                                    <div className="font-medium">{message.from}</div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400">{new Date(message.date).toLocaleString()}</div>
+                                  </div>
+                                  <div className="text-sm whitespace-pre-wrap">{message.text_body}</div>
                                 </div>
-                                <div className="text-sm whitespace-pre-wrap">{result.email_message.text_body}</div>
+                              ))}
+                            {(!result.email_messages || result.email_messages.length === 0) && (
+                              <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md">
+                                <div className="text-sm">No messages available</div>
                               </div>
                             )}
                           </div>
