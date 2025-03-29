@@ -1,15 +1,14 @@
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
+import { getEmailThreadByIdWithMessages, getEmailThreadByMessageIdWithMessages } from '@/dal'
 import { useDrizzle } from '@/db/provider'
-import { emailThreadsTable } from '@/db/tables'
 import { useQuery } from '@tanstack/react-query'
-import { eq } from 'drizzle-orm'
 import { ArrowRightToLine, ChevronsDownUp, ChevronsUpDown } from 'lucide-react'
 import { useState } from 'react'
 import { EmailMessageView } from './message'
 import { useSideview } from './provider'
 
-export function ThreadObjectView() {
+export function EmailThreadView() {
   const [expandAll, setExpandAll] = useState<boolean | null>(null)
   const { sideviewId, sideviewType, setSideview } = useSideview()
   const { db } = useDrizzle()
@@ -19,34 +18,26 @@ export function ThreadObjectView() {
     queryFn: async () => {
       if (!sideviewId) return null
 
-      // Fetch thread with messages
-      const threadResult = await db.query.emailThreadsTable.findFirst({
-        where: eq(emailThreadsTable.id, sideviewId),
-        with: {
-          emailMessages: {
-            with: {
-              sender: true,
-              recipients: {
-                with: {
-                  address: true,
-                },
-              },
-            },
-            orderBy: (messages: any, { asc }: any) => [asc(messages.sentAt)],
-          },
-        },
-      })
+      if (sideviewType === 'thread') {
+        return await getEmailThreadByIdWithMessages(db, sideviewId)
+      }
 
-      return threadResult
+      if (sideviewType === 'message') {
+        return await getEmailThreadByMessageIdWithMessages(db, sideviewId)
+      }
+
+      return null
     },
-    enabled: sideviewId !== null && sideviewType === 'thread',
+    enabled: sideviewId !== null,
   })
 
   const onClose = () => {
     setSideview(null, null)
   }
 
-  const x = thread?.emailMessages[0].recipients
+  if (!thread) {
+    return <div className="p-4">Thread not found</div>
+  }
 
   if (isLoading) {
     return (
@@ -69,7 +60,7 @@ export function ThreadObjectView() {
   }
 
   return (
-    <>
+    <div className="flex flex-col gap-4 px-4">
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-lg font-semibold truncate px-2">{thread.subject}</h2>
         <div className="flex gap-1">
@@ -81,9 +72,9 @@ export function ThreadObjectView() {
           </Button>
         </div>
       </div>
-      {thread.emailMessages.map((message) => (
+      {thread.messages.map((message) => (
         <EmailMessageView key={message.id} message={message} isOpen={expandAll === true} />
       ))}
-    </>
+    </div>
   )
 }

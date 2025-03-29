@@ -1,6 +1,7 @@
 import { getEmailThreadByIdWithMessages, getEmailThreadByMessageIdWithMessages, getEmailThreadByMessageImapIdWithMessages } from '@/dal'
 import { useDrizzle } from '@/db/provider'
 import { useSideview } from '@/sideview/provider'
+import { EmailThreadView } from '@/sideview/thread'
 import { useQuery } from '@tanstack/react-query'
 
 export function Sideview({}: {}) {
@@ -36,13 +37,9 @@ export function Sideview({}: {}) {
         </div>
       )
     case 'message':
-      return (
-        <div>
-          Message {sideviewId} {object?.messages.length}
-        </div>
-      )
+      return <EmailThreadView />
     case 'thread':
-      return <div>Thread {object?.messages.length}</div>
+      return <EmailThreadView />
     default:
       return <div>Unsupported sideview type</div>
   }
