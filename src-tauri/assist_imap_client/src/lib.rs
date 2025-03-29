@@ -41,7 +41,7 @@ pub struct EmailMessage {
     pub from_address: EmailAddress,
     pub to_addresses: Vec<EmailAddress>,
     pub in_reply_to: Option<String>,
-    pub references: Option<String>,
+    pub references: Vec<String>,
 }
 
 /// Structure representing the response from fetch_messages
@@ -286,8 +286,12 @@ impl ImapClient {
                     .as_text()
                     .map(|s| s.to_string());
 
-                // Extract references
-                let references = parsed_message.references().as_text().map(|s| s.to_string());
+                // Extract references as a list of message IDs
+                let references = parsed_message
+                    .references()
+                    .as_text_list()
+                    .map(|list| list.iter().map(|s| s.to_string()).collect())
+                    .unwrap_or_else(Vec::new);
 
                 // Create the message object using our struct
                 let email_message = EmailMessage {

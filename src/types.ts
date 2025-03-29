@@ -114,4 +114,5 @@ export type ImapEmailMessage = {
   sentAt: number
   toAddresses: ImapEmailAddress[]
   fromAddress: ImapEmailAddress
+  references: string[]
 }

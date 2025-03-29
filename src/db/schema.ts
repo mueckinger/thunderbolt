@@ -76,8 +76,11 @@ export const emailMessagesTable = sqliteTable('email_messages', {
   subject: text('subject'),
   sentAt: integer('sent_at').notNull(),
   fromAddress: text('from_address').references(() => emailAddressesTable.address),
-  emailThreadId: text('email_thread_id').references(() => emailThreadsTable.id, { onDelete: 'set null', onUpdate: 'cascade' }),
+  emailThreadId: text('email_thread_id')
+    .notNull()
+    .references(() => emailThreadsTable.id, { onDelete: 'cascade', onUpdate: 'cascade' }),
   mailbox: text('mailbox').notNull(),
+  references: text('references', { mode: 'json' }).$type<string[]>(),
 })
 
 export const todosTable = sqliteTable('todos', {

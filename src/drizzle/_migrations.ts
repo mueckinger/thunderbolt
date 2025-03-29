@@ -1,6 +1,6 @@
 /**
  * This file is auto-generated. Do not edit directly.
- * Generated on: 2025-03-29T00:50:14.248Z
+ * Generated on: 2025-03-29T01:20:02.233Z
  */
 
 export interface Migration {
@@ -34,5 +34,10 @@ export const migrations: Migration[] = [
     "hash": "0004_great_sprite",
     "name": "0004_great_sprite.sql",
     "sql": "ALTER TABLE `todos` ADD `email_message_id` text REFERENCES email_messages(id);--> statement-breakpoint\nCREATE UNIQUE INDEX `todos_email_message_id_unique` ON `todos` (`email_message_id`);--> statement-breakpoint\nALTER TABLE `todos` DROP COLUMN `imap_id`;"
+  },
+  {
+    "hash": "0005_married_doctor_spectrum",
+    "name": "0005_married_doctor_spectrum.sql",
+    "sql": "ALTER TABLE `email_messages` ADD `references` text;"
   }
 ];
