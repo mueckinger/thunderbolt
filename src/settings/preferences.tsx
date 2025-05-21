@@ -10,7 +10,6 @@ import axios from '@/lib/axios'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command'
 
@@ -18,7 +17,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-// Define types for location data
 interface LocationData {
   name: string
   city: string
@@ -47,9 +45,9 @@ export default function PreferencesSettingsPage() {
   const { data: locationSettings, isLoading } = useQuery({
     queryKey: ['settings', 'location'],
     queryFn: async () => {
-      const nameData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'locationName'))
-      const latData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'locationLat'))
-      const lngData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'locationLng'))
+      const nameData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_name'))
+      const latData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_lat'))
+      const lngData = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_lng'))
 
       return {
         locationName: nameData[0]?.value || '',
@@ -104,12 +102,12 @@ export default function PreferencesSettingsPage() {
   const saveLocationMutation = useMutation({
     mutationFn: async (values: z.infer<typeof formSchema>) => {
       // Upsert approach - delete and insert
-      await db.delete(settingsTable).where(sql`${settingsTable.key} IN ('locationName', 'locationLat', 'locationLng')`)
+      await db.delete(settingsTable).where(sql`${settingsTable.key} IN ('location_name', 'location_lat', 'location_lng')`)
 
       await db.insert(settingsTable).values([
-        { key: 'locationName', value: values.locationName },
-        { key: 'locationLat', value: values.locationLat },
-        { key: 'locationLng', value: values.locationLng },
+        { key: 'location_name', value: values.locationName },
+        { key: 'location_lat', value: values.locationLat },
+        { key: 'location_lng', value: values.locationLng },
       ])
     },
     onSuccess: () => {
@@ -136,6 +134,7 @@ export default function PreferencesSettingsPage() {
       <h2 className="text-xl font-bold">Preferences</h2>
 
       <h3 className="text-lg font-semibold">Location</h3>
+
       <Card>
         <CardContent className="pt-6">
           <Form {...form}>
@@ -180,36 +179,6 @@ export default function PreferencesSettingsPage() {
                   </FormItem>
                 )}
               />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="locationLat"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitude</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="locationLng"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitude</FormLabel>
-                      <FormControl>
-                        <Input {...field} readOnly />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               <div className="flex justify-end">
                 <Button type="submit" disabled={saveLocationMutation.isPending}>

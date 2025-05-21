@@ -32,7 +32,7 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
           if (message.role === 'assistant') {
             return (
               <div key={i} className="space-y-2 p-4 rounded-md  bg-secondary mr-auto">
-                {message.content && <div className="text-secondary-foreground leading-relaxed">{message.content}</div>}
+                {message.content && <div className="text-secondary-foreground leading-relaxed italic">{message.content}</div>}
                 {message.parts
                   ?.filter((part) => part.type === 'tool-invocation')
                   .map((part, j) => (

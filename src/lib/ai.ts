@@ -1,4 +1,4 @@
-import { Model, SaveMessagesFunction } from '@/types'
+import { Model, SaveMessagesFunction, Setting } from '@/types'
 import { createFireworks } from '@ai-sdk/fireworks'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
@@ -28,6 +28,8 @@ const p1 = `
     If you are unable to answer the user's question based on the available information, just say so. Do not make up an answer.
     
     Call the "answer" tool to provide your final response to the user.
+
+    Do not respond to the user, only use the tools.
 `
 
 const p2 = `
@@ -80,6 +82,7 @@ type AiFetchStreamingResponseOptions = {
   init: RequestInit
   saveMessages: SaveMessagesFunction
   model: Model
+  settings: Setting[]
 }
 
 export const createModel = (modelConfig: Model): LanguageModelV1 => {
@@ -126,7 +129,7 @@ export const createModel = (modelConfig: Model): LanguageModelV1 => {
   }
 }
 
-export const aiFetchStreamingResponse = async ({ init, saveMessages, model: modelConfig }: AiFetchStreamingResponseOptions) => {
+export const aiFetchStreamingResponse = async ({ init, saveMessages, model: modelConfig, settings }: AiFetchStreamingResponseOptions) => {
   // _requestInfoOrUrl is not used, but is required by fetch. The OpenAI wrapper handles the URL For us.
 
   const model = await createModel(modelConfig)
@@ -171,7 +174,8 @@ export const aiFetchStreamingResponse = async ({ init, saveMessages, model: mode
     system: p1,
     messages: processedMessages,
     toolCallStreaming: true, // Causes issues because this results in incomplete result objects getting passed to React components. Experimentation to block rendering until the full objects are available is needed.
-    tools: toolset,
+    tools: toolset({ settings }),
+    multipleToolCalls: true,
 
     // if we want to generate a custom id
     experimental_generateMessageId: uuidv7,

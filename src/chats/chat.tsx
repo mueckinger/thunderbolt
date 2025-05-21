@@ -1,8 +1,8 @@
 import ChatUI from '@/components/chat/chat-ui'
 import { useDrizzle } from '@/db/provider'
-import { modelsTable } from '@/db/tables'
+import { modelsTable, settingsTable } from '@/db/tables'
 import { aiFetchStreamingResponse } from '@/lib/ai'
-import { Model, SaveMessagesFunction } from '@/types'
+import { Model, SaveMessagesFunction, Setting } from '@/types'
 import { useChat } from '@ai-sdk/react'
 import { useQuery } from '@tanstack/react-query'
 import { Message } from 'ai'
@@ -24,6 +24,13 @@ export default function Chat({ id, initialMessages, maxSteps = 5, saveMessages }
     queryKey: ['models'],
     queryFn: async () => {
       return await db.select().from(modelsTable)
+    },
+  })
+
+  const { data: settings = [] } = useQuery<Setting[]>({
+    queryKey: ['settings'],
+    queryFn: async () => {
+      return await db.select().from(settingsTable)
     },
   })
 
@@ -60,6 +67,7 @@ export default function Chat({ id, initialMessages, maxSteps = 5, saveMessages }
         init,
         saveMessages,
         model,
+        settings,
       })
     },
     maxSteps,
