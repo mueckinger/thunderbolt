@@ -1,19 +1,18 @@
 import ChatUI from '@/components/chat/chat-ui'
-import { aiFetchStreamingResponse } from '@/lib/ai'
-import { Model, SaveMessagesFunction, Setting } from '@/types'
-import { useChat } from '@ai-sdk/react'
-import { v7 as uuidv7 } from 'uuid'
-import { defaultChatStore, UIMessage } from 'ai'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useDrizzle } from '@/db/provider'
 import { modelsTable, settingsTable } from '@/db/tables'
+import { aiFetchStreamingResponse } from '@/lib/ai'
+import { Model, SaveMessagesFunction } from '@/types'
+import { useChat } from '@ai-sdk/react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { defaultChatStore, UIMessage } from 'ai'
 import { eq } from 'drizzle-orm'
 import { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy'
+import { v7 as uuidv7 } from 'uuid'
 
 interface ChatStateProps {
   id: string
   models: Model[]
-  settings: Setting[]
   initialMessages: UIMessage[] | undefined
   saveMessages: SaveMessagesFunction
 }
@@ -37,7 +36,7 @@ const getSelectedModel = async (db: SqliteRemoteDatabase) => {
   return systemModel
 }
 
-export default function ChatState({ id, models, settings, initialMessages, saveMessages }: ChatStateProps) {
+export default function ChatState({ id, models, initialMessages, saveMessages }: ChatStateProps) {
   const queryClient = useQueryClient()
 
   const { db } = useDrizzle()
@@ -84,11 +83,9 @@ export default function ChatState({ id, models, settings, initialMessages, saveM
         const model = await getSelectedModel(db as unknown as SqliteRemoteDatabase)
 
         return aiFetchStreamingResponse({
-          db: db as unknown as SqliteRemoteDatabase,
           init,
           saveMessages,
           model,
-          settings,
         })
       } catch (error) {
         console.error('Error in fetch:', error)

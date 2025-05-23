@@ -32,5 +32,5 @@ export default function Chat({ id, initialMessages, saveMessages }: ChatProps) {
     return <div>Loading...</div>
   }
 
-  return <ChatState id={id} models={models} settings={settings} initialMessages={initialMessages} saveMessages={saveMessages} />
+  return <ChatState id={id} models={models} initialMessages={initialMessages} saveMessages={saveMessages} />
 }

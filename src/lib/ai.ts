@@ -1,11 +1,9 @@
-import * as schema from '@/db/schema'
-import { Model, SaveMessagesFunction, Setting } from '@/types'
+import { Model, SaveMessagesFunction } from '@/types'
 import { createDeepInfra } from '@ai-sdk/deepinfra'
 import { createFireworks } from '@ai-sdk/fireworks'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { convertToModelMessages, extractReasoningMiddleware, LanguageModel, streamText, ToolInvocation, UIMessage, wrapLanguageModel } from 'ai'
-import { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy'
 import { toolset } from './tools'
 
 export type ToolInvocationWithResult<T = object> = ToolInvocation & {
@@ -39,11 +37,9 @@ export const ollama = createOpenAI({
 })
 
 type AiFetchStreamingResponseOptions = {
-  db: SqliteRemoteDatabase<typeof schema>
   init: RequestInit
   saveMessages: SaveMessagesFunction
   model: Model
-  settings: Setting[]
 }
 
 export const createModel = (modelConfig: Model): LanguageModel => {
@@ -101,7 +97,7 @@ export const createModel = (modelConfig: Model): LanguageModel => {
   }
 }
 
-export const aiFetchStreamingResponse = async ({ db, init, saveMessages, model: modelConfig }: AiFetchStreamingResponseOptions) => {
+export const aiFetchStreamingResponse = async ({ init, saveMessages, model: modelConfig }: AiFetchStreamingResponseOptions) => {
   try {
     const baseModel = await createModel(modelConfig)
 
