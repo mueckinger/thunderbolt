@@ -15,9 +15,9 @@ import {
 } from '@/components/ui/sidebar'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useDrizzle } from '@/db/provider'
-import { chatThreadsTable } from '@/db/tables'
+import { chatMessagesTable, chatThreadsTable } from '@/db/tables'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { desc, eq } from 'drizzle-orm'
+import { desc, eq, notExists } from 'drizzle-orm'
 import { Flame, Loader2, MoreHorizontal, SquarePen } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { v7 as uuidv7 } from 'uuid'
@@ -67,8 +67,23 @@ export default function ChatSidebar() {
     },
   })
 
-  const createNewChat = () => {
-    createChatMutation.mutate()
+  const createNewChat = async () => {
+    try {
+      const emptyThreads = await db
+        .select({ id: chatThreadsTable.id })
+        .from(chatThreadsTable)
+        .where(notExists(db.select().from(chatMessagesTable).where(eq(chatMessagesTable.chatThreadId, chatThreadsTable.id))))
+        .limit(1)
+
+      if (emptyThreads.length > 0) {
+        navigate(`/chats/${emptyThreads[0].id}`)
+      } else {
+        createChatMutation.mutate()
+      }
+    } catch (error) {
+      console.error('Error checking for empty threads:', error)
+      createChatMutation.mutate()
+    }
   }
 
   return (
