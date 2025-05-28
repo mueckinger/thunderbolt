@@ -23,8 +23,10 @@ uv sync
 2. Create a `.env` file with your API keys:
 
 ```bash
-DEEPINFRA_API_KEY=your_deepinfra_api_key
+# Copy this to .env and replace with your actual keys
+FIREWORKS_API_KEY=your_fireworks_api_key
 WEATHER_API_KEY=your_weather_api_key  # Optional
+LOG_LEVEL=debug  # Optional, for development
 ```
 
 ### Docker Deployment
@@ -71,7 +73,7 @@ docker build -t thunderbolt-backend:latest .
 docker run -d \
   --name thunderbolt-backend \
   -p 8000:8000 \
-  -e DEEPINFRA_API_KEY=your_deepinfra_api_key \
+  -e FIREWORKS_API_KEY=your_fireworks_api_key \
   -e WEATHER_API_KEY=your_weather_api_key \
   --restart unless-stopped \
   thunderbolt-backend:latest
@@ -134,12 +136,12 @@ The server will be available at `http://localhost:8000`.
 ## API Endpoints
 
 1. **Health Check**: `GET /health`
-2. **OpenAI-Compatible Proxy**: `/openai/*` - Proxies requests to DeepInfra's OpenAI-compatible API
+2. **OpenAI-Compatible Proxy**: `/openai/*` - Proxies requests to Fireworks' OpenAI-compatible API
 3. **Generic Proxy**: `/proxy/*` - Configurable proxy for other external APIs
 
 ## OpenAI Proxy Usage
 
-The OpenAI proxy at `/openai/*` provides transparent access to DeepInfra's language models using the OpenAI API format:
+The OpenAI proxy at `/openai/*` provides transparent access to Fireworks' language models using the OpenAI API format:
 
 - `POST /openai/chat/completions` - Chat completions (supports streaming)
 - `GET /openai/models` - List available models

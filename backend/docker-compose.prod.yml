@@ -11,7 +11,7 @@ services:
       - '8000:8000'
     environment:
       # API Keys (use secrets in production)
-      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - FIREWORKS_API_KEY=${FIREWORKS_API_KEY}
       - WEATHER_API_KEY=${WEATHER_API_KEY}
       # Gunicorn configuration
       - WORKERS=${WORKERS:-4}

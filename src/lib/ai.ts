@@ -29,10 +29,11 @@ const createPrompt = ({ preferredName, location }: PromptParams) => {
     `You are a helpful executive assistant.`,
     `The current date and time is ${new Date().toISOString()}.`,
     preferredName ? `The current's name is ${preferredName}.` : '',
-    location ? `The user's location is ${location.name} (${location.lat}, ${location.lng}).` : '',
+    location.name ? `The user's location is ${location.name}${location.lat && location.lng ? ` (${location.lat}, ${location.lng})` : ''}.` : '',
     `You can use the available tools to answer the user's question.`,
     `If you are unable to answer the user's question based on the available information, just say so. Do not make up an answer.`,
-    `Respond to the user's question in a helpful, concise and friendly manner. Always reply to the user in plain text - do not reply in markdown or mention JSON or anything about tools`,
+    `Respond to the user's question in a helpful, concise and friendly manner. Always reply to the user in plain text - do not reply in markdown or mention JSON or anything about tools.`,
+    `Always reply to the user, even if it is just a question or a simple statement that you aren't able to provide an answer.`,
   ]
 
   return prompt.filter(Boolean).join('\n')
@@ -57,12 +58,9 @@ export const createModel = async (modelConfig: Model): Promise<LanguageModel> =>
       const cloudUrlSetting = await db.select().from(settingsTable).where(eq(settingsTable.key, 'cloud_url')).get()
       const cloudUrl = (cloudUrlSetting?.value as string) || 'http://localhost:8000'
 
-      const baseURL = modelConfig.url?.includes('{{cloud_url}}') ? modelConfig.url.replace('{{cloud_url}}', cloudUrl) : modelConfig.url || 'http://localhost:8000/openai'
-
       const openaiCompatible = createOpenAICompatible({
         name: 'custom',
-        baseURL,
-        apiKey: modelConfig.apiKey ?? undefined,
+        baseURL: `${cloudUrl}/openai`,
       })
       return openaiCompatible(modelConfig.model) as LanguageModel
     }

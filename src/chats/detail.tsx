@@ -68,9 +68,9 @@ export default function ChatDetailPage() {
           const model = await createModel({
             id: 'system',
             name: 'System',
-            provider: 'openai_compatible',
-            url: '{{cloud_url}}/openai',
-            model: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+            provider: 'thunderbolt',
+            model: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
+            url: null,
             apiKey: null,
             isSystem: 1,
           })

@@ -37,13 +37,13 @@ async def lifespan(app: FastAPI) -> Any:
             ),
         )
 
-    # DeepInfra OpenAI-compatible proxy
-    if settings.deepinfra_api_key:
+    # Fireworks OpenAI-compatible proxy
+    if settings.fireworks_api_key:
         proxy_service.register_proxy(
             "/openai",
             ProxyConfig(
-                target_url="https://api.deepinfra.com/v1/openai",
-                api_key=settings.deepinfra_api_key,
+                target_url="https://api.fireworks.ai/inference/v1",
+                api_key=settings.fireworks_api_key,
                 api_key_header="Authorization",
                 api_key_as_query_param=False,
                 require_auth=False,  # Frontend doesn't need to authenticate

@@ -23,21 +23,28 @@ export const seedModels = async (db: DrizzleContextType['db']) => {
     const seedData = [
       {
         id: uuidv7(),
-        name: 'Llama 3.1 (70B)',
+        name: 'Llama 3.1 70B',
         provider: 'thunderbolt' as const,
-        model: 'meta-llama/Meta-Llama-3.1-70B-Instruct',
+        model: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
         isSystem: 1,
       },
       {
         id: uuidv7(),
-        name: 'Qwen3 (235B)',
+        name: 'Llama 3.1 405B',
         provider: 'thunderbolt' as const,
-        model: 'Qwen/Qwen3-235B-A22B',
+        model: 'accounts/fireworks/models/llama-v3p1-405b-instruct',
         isSystem: 1,
       },
       {
         id: uuidv7(),
-        name: 'Llama 3.2 (3B)',
+        name: 'Qwen3 235B',
+        provider: 'thunderbolt' as const,
+        model: 'accounts/fireworks/models/qwen3-235b-a22b',
+        isSystem: 1,
+      },
+      {
+        id: uuidv7(),
+        name: 'Llama 3.2 3B',
         provider: 'openai_compatible' as const,
         model: 'llama3.2:3b-instruct-q4_1',
         url: 'http://localhost:11434/v1',

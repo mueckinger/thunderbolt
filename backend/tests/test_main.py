@@ -43,7 +43,7 @@ def test_proxy_not_configured(client: TestClient) -> None:
 
 def test_openai_proxy_without_config(client: TestClient) -> None:
     """Test OpenAI proxy when not configured."""
-    # This test assumes DEEPINFRA_API_KEY is not set in test environment
+    # This test assumes FIREWORKS_API_KEY is not set in test environment
     # You might need to mock the settings for this test
     response = client.post("/openai/chat/completions", json={})
     # Should either return 404 if not configured or pass through to the API

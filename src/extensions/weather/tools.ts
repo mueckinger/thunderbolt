@@ -29,7 +29,7 @@ export const getOrCreateWeatherClient = async () => {
   const cloudUrl = cloudUrlSetting?.value as string
 
   return new WeatherClient({
-    apiKey: '9963f64429764ef883e235124252705',
+    apiKey: 'none',
     apiBaseUrl: `${cloudUrl}/proxy/weather`,
     ky: await getOrCreateKyInstance(),
   })
