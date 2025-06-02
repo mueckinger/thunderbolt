@@ -56,18 +56,63 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
   const [hasMessages, setHasMessages] = useState(chatHelpers.messages.length > 0)
   const formRef = useRef<HTMLFormElement>(null)
   const containerWidth = 696 // 728px container - 16px padding on each side
+  const previousMessageCountRef = useRef(chatHelpers.messages.length)
+  const scrollContainerRef = useRef<HTMLDivElement>(null)
+  const [userHasScrolled, setUserHasScrolled] = useState(false)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  const scrollToBottom = (smooth: boolean = true) => {
+    messagesEndRef.current?.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto' })
   }
 
+  const isAtBottom = () => {
+    if (!scrollContainerRef.current) return true
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
+    return scrollHeight - scrollTop - clientHeight < 50 // Smaller threshold
+  }
+
+  const handleScroll = () => {
+    if (!isAtBottom()) {
+      setUserHasScrolled(true)
+    } else {
+      setUserHasScrolled(false)
+    }
+  }
+
+  // Detect wheel events for immediate response to scroll intent
+  const handleWheel = (e: React.WheelEvent) => {
+    if (e.deltaY < 0) { // Scrolling up
+      setUserHasScrolled(true)
+    }
+  }
+
+  // Initial scroll to bottom when component mounts
   useEffect(() => {
     scrollToBottom()
-    setHasMessages(chatHelpers.messages.length > 0)
-  }, [chatHelpers.messages])
+  }, [])
+
+  useEffect(() => {
+    const currentMessageCount = chatHelpers.messages.length
+    const previousMessageCount = previousMessageCountRef.current
+    
+    // Scroll to bottom when a new message is added
+    if (currentMessageCount > previousMessageCount) {
+      scrollToBottom()
+      setUserHasScrolled(false) // Reset user scroll when new message starts
+    } else if (chatHelpers.status === 'streaming' && !userHasScrolled) {
+      // Keep scrolling during streaming if user hasn't manually scrolled
+      // Use instant scrolling during streaming to prevent fighting
+      scrollToBottom(false)
+    }
+    
+    previousMessageCountRef.current = currentMessageCount
+    setHasMessages(currentMessageCount > 0)
+  }, [chatHelpers.messages, chatHelpers.status, userHasScrolled])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     chatHelpers.handleSubmit(e)
+    // Reset user scroll state and scroll to bottom when submitting a new message
+    setUserHasScrolled(false)
+    setTimeout(scrollToBottom, 100)
   }
 
   const handleSelectPrompt = (prompt: string) => {
@@ -84,7 +129,15 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
     <div className="flex flex-col h-full bg-background overflow-hidden max-w-[728px] mx-auto">
       <AnimatePresence>
         {hasMessages && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 p-4 overflow-y-auto space-y-4">
+          <motion.div 
+            ref={scrollContainerRef}
+            onScroll={handleScroll}
+            onWheel={handleWheel}
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="flex-1 p-4 overflow-y-auto space-y-4"
+          >
             {chatHelpers.messages.map((message, i) => {
               if (message.role === 'assistant') {
                 return (
@@ -173,7 +226,7 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
             <Input variant="ghost" autoFocus value={chatHelpers.input} onChange={chatHelpers.handleInputChange} placeholder="Say something..." className="flex-1 px-4 py-2" />
             <div className="flex gap-2 justify-end items-center w-full">
               <Select value={selectedModel || ''} onValueChange={onModelChange}>
-                <SelectTrigger className="rounded-full" size="sm" variant="outline">
+                <SelectTrigger className="rounded-full" size="sm">
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
