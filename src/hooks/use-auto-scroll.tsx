@@ -1,14 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+// Constants for scroll behavior thresholds
+const SCROLL_THRESHOLD = {
+  AWAY_FROM_BOTTOM: 100, // Distance in px to consider user has scrolled away
+  BACK_TO_BOTTOM: 10,    // Distance in px to consider user is back at bottom
+} as const
+
 interface UseAutoScrollOptions {
-  /** Threshold in pixels from bottom to consider "at bottom" */
-  threshold?: number
   /** Dependencies that should trigger a scroll to bottom */
   dependencies?: any[]
   /** Whether to use smooth scrolling */
   smooth?: boolean
+  /** Whether content is currently streaming (enables instant scrolling) */
+  isStreaming?: boolean
   /** Callback when user manually scrolls */
   onUserScroll?: (isAtBottom: boolean) => void
+  /** Root margin for intersection observer (default: '0px') */
+  rootMargin?: string
 }
 
 interface UseAutoScrollReturn {
@@ -18,6 +26,8 @@ interface UseAutoScrollReturn {
   scrollTargetRef: React.RefObject<HTMLDivElement | null>
   /** Whether the user has manually scrolled away from bottom */
   userHasScrolled: boolean
+  /** Whether the scroll position is at the bottom */
+  isAtBottom: boolean
   /** Manually scroll to bottom */
   scrollToBottom: (smooth?: boolean) => void
   /** Reset the user scroll state */
@@ -29,67 +39,129 @@ interface UseAutoScrollReturn {
   }
 }
 
-export function useAutoScroll({
-  threshold = 50,
-  dependencies = [],
-  smooth = true,
-  onUserScroll,
+/**
+ * useAutoScroll - A React hook for managing auto-scroll behavior in chat-like interfaces
+ * 
+ * Features:
+ * - Automatically scrolls to bottom when new content is added
+ * - Detects user scroll intent and pauses auto-scroll
+ * - Re-engages auto-scroll when user returns to bottom
+ * - Optimized for streaming content with instant scrolling option
+ * - Uses Intersection Observer for performance
+ * 
+ * @param options Configuration options for the hook
+ * @returns Refs and handlers to implement auto-scroll behavior
+ * 
+ * @example
+ * ```tsx
+ * const { scrollContainerRef, scrollTargetRef, scrollHandlers } = useAutoScroll({
+ *   isStreaming: true,
+ *   dependencies: [messages],
+ *   rootMargin: '0px 0px -50px 0px'
+ * })
+ * 
+ * return (
+ *   <div ref={scrollContainerRef} {...scrollHandlers}>
+ *     {content}
+ *     <div ref={scrollTargetRef} />
+ *   </div>
+ * )
+ * ```
+ */
+export function useAutoScroll({ 
+  dependencies = [], 
+  smooth = true, 
+  isStreaming = false, 
+  onUserScroll, 
+  rootMargin = '0px' 
 }: UseAutoScrollOptions = {}): UseAutoScrollReturn {
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const scrollTargetRef = useRef<HTMLDivElement>(null)
   const [userHasScrolled, setUserHasScrolled] = useState(false)
+  const [isAtBottom, setIsAtBottom] = useState(true)
 
-  const isAtBottom = useCallback(() => {
-    if (!scrollContainerRef.current) return true
+  // Utility to calculate distance from bottom
+  const getDistanceFromBottom = useCallback(() => {
+    if (!scrollContainerRef.current) return 0
     const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current
-    return scrollHeight - scrollTop - clientHeight < threshold
-  }, [threshold])
+    return scrollHeight - scrollTop - clientHeight
+  }, [])
 
-  const scrollToBottom = useCallback((smoothScroll: boolean = smooth) => {
-    scrollTargetRef.current?.scrollIntoView({ 
-      behavior: smoothScroll ? 'smooth' : 'auto' 
-    })
-  }, [smooth])
+  const scrollToBottom = useCallback((smoothScroll?: boolean) => {
+    const target = scrollTargetRef.current
+    if (!target) return
+    
+    try {
+      target.scrollIntoView({
+        behavior: (smoothScroll ?? (!isStreaming && smooth)) ? 'smooth' : 'auto',
+        block: 'end',
+      })
+    } catch (error) {
+      // Fallback for older browsers
+      scrollContainerRef.current?.scrollTo(0, scrollContainerRef.current.scrollHeight)
+    }
+  }, [smooth, isStreaming])
 
   const handleScroll = useCallback(() => {
-    const atBottom = isAtBottom()
-    setUserHasScrolled(!atBottom)
-    onUserScroll?.(atBottom)
-  }, [isAtBottom, onUserScroll])
+    const distanceFromBottom = getDistanceFromBottom()
+    
+    if (distanceFromBottom > SCROLL_THRESHOLD.AWAY_FROM_BOTTOM) {
+      setUserHasScrolled(true)
+    } else if (distanceFromBottom < SCROLL_THRESHOLD.BACK_TO_BOTTOM && userHasScrolled) {
+      setUserHasScrolled(false)
+    }
+  }, [userHasScrolled, getDistanceFromBottom])
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
-    // Immediately detect upward scroll intent
-    if (e.deltaY < 0) {
-      setUserHasScrolled(true)
-      onUserScroll?.(false)
-    }
-  }, [onUserScroll])
+    if (e.deltaY < 0) setUserHasScrolled(true)
+  }, [])
 
   const resetUserScroll = useCallback(() => {
     setUserHasScrolled(false)
   }, [])
 
-  // Initial scroll on mount
+  // Set up Intersection Observer for accurate bottom detection
   useEffect(() => {
-    scrollToBottom()
-  }, [])
+    const scrollContainer = scrollContainerRef.current
+    const scrollTarget = scrollTargetRef.current
+    
+    if (!scrollTarget || !scrollContainer) return
 
-  // Auto-scroll when dependencies change
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const atBottom = entry.isIntersecting
+        setIsAtBottom(atBottom)
+        onUserScroll?.(atBottom)
+      },
+      {
+        root: scrollContainer,
+        rootMargin,
+        threshold: 0,
+      }
+    )
+
+    observer.observe(scrollTarget)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [rootMargin, onUserScroll])
+
+  // Handle initial mount and dependency-based scrolling
   useEffect(() => {
-    if (!userHasScrolled && dependencies.length > 0) {
+    if (!userHasScrolled) {
       scrollToBottom()
     }
-  }, dependencies)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [...dependencies])
 
   return {
     scrollContainerRef,
     scrollTargetRef,
     userHasScrolled,
+    isAtBottom,
     scrollToBottom,
     resetUserScroll,
-    scrollHandlers: {
-      onScroll: handleScroll,
-      onWheel: handleWheel,
-    },
+    scrollHandlers: { onScroll: handleScroll, onWheel: handleWheel },
   }
 }

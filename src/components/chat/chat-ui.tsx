@@ -58,10 +58,11 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
   const containerWidth = 696 // 728px container - 16px padding on each side
   const previousMessageCountRef = useRef(chatHelpers.messages.length)
 
-  const { scrollContainerRef, scrollTargetRef, userHasScrolled, scrollToBottom, resetUserScroll, scrollHandlers } = useAutoScroll({
-    threshold: 50,
+  const { scrollContainerRef, scrollTargetRef, scrollToBottom, resetUserScroll, scrollHandlers, userHasScrolled, isAtBottom } = useAutoScroll({
     dependencies: [],
     smooth: true,
+    isStreaming: chatHelpers.status === 'streaming',
+    rootMargin: '0px 0px -50px 0px', // 50px threshold from bottom
   })
 
   useEffect(() => {
@@ -72,15 +73,14 @@ export default function ChatUI({ chatHelpers, models, selectedModel, onModelChan
     if (currentMessageCount > previousMessageCount) {
       scrollToBottom()
       resetUserScroll() // Reset user scroll when new message starts
-    } else if (chatHelpers.status === 'streaming' && !userHasScrolled) {
-      // Keep scrolling during streaming if user hasn't manually scrolled
-      // Use instant scrolling during streaming to prevent fighting
-      scrollToBottom(false)
+    } else if (chatHelpers.status === 'streaming' && !userHasScrolled && isAtBottom) {
+      // Continue scrolling during streaming only if user hasn't scrolled away AND we're at bottom
+      scrollToBottom()
     }
 
     previousMessageCountRef.current = currentMessageCount
     setHasMessages(currentMessageCount > 0)
-  }, [chatHelpers.messages, chatHelpers.status, userHasScrolled, scrollToBottom, resetUserScroll])
+  }, [chatHelpers.messages, chatHelpers.status, scrollToBottom, resetUserScroll, userHasScrolled, isAtBottom])
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     chatHelpers.handleSubmit(e)
