@@ -14,14 +14,39 @@ jobs:
   draft:
     runs-on: ubuntu-22.04
     environment: CrabNebula Cloud
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
+      
+      - name: Get version from tag
+        id: get-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+      
       - name: create draft release
         uses: crabnebula-dev/cloud-release@v0
         with:
           command: release draft ${{ vars.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get-version.outputs.version }}
+          name: Release ${{ steps.get-version.outputs.version }}
+          draft: true
+          prerelease: true
+          body: |
+            ## Release Candidate ${{ steps.get-version.outputs.version }}
+            
+            This is a release candidate. The final release will be created after successful builds.
+            
+            ### Downloads
+            
+            Binaries will be attached to this release after successful builds.
 
   build_desktop:
     needs: draft
@@ -121,11 +146,44 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 
-      - name: upload assets
+      - name: upload assets to CrabNebula
         uses: crabnebula-dev/cloud-release@v0
         with:
           command: release upload ${{ vars.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
+      
+      - name: Upload Linux artifacts to GitHub Release
+        if: matrix.os == 'ubuntu-22.04'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.draft.outputs.version }}
+          draft: true
+          files: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+            src-tauri/target/release/bundle/rpm/*.rpm
+      
+      - name: Upload Windows artifacts to GitHub Release
+        if: matrix.os == 'windows-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.draft.outputs.version }}
+          draft: true
+          files: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+      
+      - name: Upload macOS artifacts to GitHub Release
+        if: matrix.os == 'macos-latest'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.draft.outputs.version }}
+          draft: true
+          files: |
+            src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/aarch64-apple-darwin/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+            src-tauri/target/x86_64-apple-darwin/release/bundle/macos/*.app.tar.gz
 
   build_android:
     needs: draft
@@ -244,7 +302,7 @@ jobs:
       #     api-key: ${{ secrets.CN_API_KEY }}
 
   publish:
-    needs: [build_desktop, build_android, build_ios]
+    needs: [build_desktop]
     environment: CrabNebula Cloud
     runs-on: ubuntu-22.04
     steps:
@@ -253,11 +311,13 @@ jobs:
           fetch-depth: 0 # Fetch all history for proper tagging
 
       - name: Create Release Tag
+        id: create-tag
         if: success()
         run: |
           # Extract version from RC tag (e.g., v1.0.0-rc1 -> v1.0.0)
           VERSION=${GITHUB_REF#refs/tags/}
           VERSION=${VERSION%-rc*}
+          echo "final_version=$VERSION" >> $GITHUB_OUTPUT
 
           # Configure git
           git config --global user.name 'GitHub Actions'
@@ -267,8 +327,31 @@ jobs:
           git tag $VERSION
           git push origin $VERSION
 
-      - name: publish release
+      - name: publish release to CrabNebula
         uses: crabnebula-dev/cloud-release@v0
         with:
           command: release publish ${{ vars.CN_APPLICATION }} --framework tauri
           api-key: ${{ secrets.CN_API_KEY }}
+      
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.draft.outputs.version }}
+          draft: false
+          prerelease: false
+          name: Release ${{ steps.create-tag.outputs.final_version }}
+          body: |
+            ## Release ${{ steps.create-tag.outputs.final_version }}
+            
+            ### Downloads
+            
+            Download the appropriate installer for your platform below.
+            
+            #### Desktop
+            - **Windows**: `.msi` or `.exe` installer
+            - **macOS**: `.dmg` installer (Intel and Apple Silicon)
+            - **Linux**: `.AppImage`, `.deb`, or `.rpm` package
+            
+            ### Release Notes
+            
+            _Add your release notes here_
