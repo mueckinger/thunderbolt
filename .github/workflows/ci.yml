@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['*']
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: nightly
+          cache: 'cargo'
+          components: rustfmt, clippy
+          override: true
+          profile: minimal
+          target: x86_64-unknown-linux-gnu
+          cache-key: cargo-${{ hashFiles('**/Cargo.lock') }}
+          cache-dependency-path: |
+            **/Cargo.lock
+            src-tauri/Cargo.lock
+            src-tauri/thunderbolt_imap_client/Cargo.lock
+            src-tauri/thunderbolt_imap_sync/Cargo.lock
+            src-tauri/thunderbolt_embeddings/Cargo.lock
+            src-tauri/thunderbolt_bridge/Cargo.lock
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Cache Bun dependencies
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: bun-${{ hashFiles('bun.lockb') }}
+          restore-keys: |
+            bun-
+
+      - name: Install Tauri CLI
+        run: bun install -g @tauri-apps/cli
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Type check
+        run: bun run tsc --noEmit
+
+      - name: Test
+        run: |
+          bun run tauri build --verbose
+          bun run tauri dev --verbose
+
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'uv'
+
+      - name: Install dependencies
+        run: |
+          cd backend
+          uv pip install -e ".[dev]"
+
+      - name: Lint
+        run: |
+          cd backend
+          ruff check .
+
+      - name: Format check
+        run: |
+          cd backend
+          ruff format --check .
+
+      - name: Type check
+        run: |
+          cd backend
+          mypy .
+
+      - name: Test
+        run: |
+          cd backend
+          pytest --cov=thunderbolt --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./backend/coverage.xml
+          fail_ci_if_error: true

@@ -2,8 +2,8 @@ name: Tauri v2 Release Process
 run-name: triggered by ${{ github.actor }}.
 on:
   push:
-    branches:
-      - main
+    tags:
+      - 'v*-rc*' # This will trigger on any tag matching v*-rc* (e.g., v1.0.0-rc1)
   workflow_dispatch:
 
 concurrency:
@@ -246,11 +246,26 @@ jobs:
   publish:
     needs: [build_desktop, build_android, build_ios]
     environment: CrabNebula Cloud
-
     runs-on: ubuntu-22.04
-
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for proper tagging
+
+      - name: Create Release Tag
+        if: success()
+        run: |
+          # Extract version from RC tag (e.g., v1.0.0-rc1 -> v1.0.0)
+          VERSION=${GITHUB_REF#refs/tags/}
+          VERSION=${VERSION%-rc*}
+
+          # Configure git
+          git config --global user.name 'GitHub Actions'
+          git config --global user.email 'github-actions@github.com'
+
+          # Create and push the final release tag
+          git tag $VERSION
+          git push origin $VERSION
 
       - name: publish release
         uses: crabnebula-dev/cloud-release@v0

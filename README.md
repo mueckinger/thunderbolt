@@ -130,3 +130,7 @@ bun run tauri ios dev --force-ip-prompt --host # Be sure to select the IP of you
 
 - https://tauri.app/develop/#developing-your-mobile-application
 - https://github.com/sarah-quinones/gemm/issues/31#issuecomment-2395557397
+
+## Documentation
+
+- [Release Process](./RELEASE.md) - Instructions for creating and publishing new releases
