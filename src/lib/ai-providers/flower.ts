@@ -1,17 +1,17 @@
 import {
   LanguageModelV2,
   LanguageModelV2CallOptions,
-  LanguageModelV2StreamPart,
-  NoSuchModelError,
-  UnsupportedFunctionalityError,
-  ProviderV2,
-  SharedV2ProviderMetadata,
-  LanguageModelV2Content,
   LanguageModelV2CallWarning,
+  LanguageModelV2Content,
   LanguageModelV2FinishReason,
-  LanguageModelV2Usage,
   LanguageModelV2ResponseMetadata,
+  LanguageModelV2StreamPart,
+  LanguageModelV2Usage,
+  NoSuchModelError,
+  ProviderV2,
   SharedV2Headers,
+  SharedV2ProviderMetadata,
+  UnsupportedFunctionalityError,
 } from '@ai-sdk/provider'
 import { chatWithFlowerDirect, initializeFlowerIntelligence } from '../flower-direct'
 
@@ -40,12 +40,7 @@ export interface FlowerModelSettings {
 }
 
 // Flower model IDs that are known to work
-const FLOWER_MODELS = [
-  'mistralai/mistral-small-3.1-24b',
-  'llama-3.1-70b-instruct',
-  'llama-3.1-8b-instruct',
-  'meta/llama3.2-1b/instruct-fp16',
-] as const
+const FLOWER_MODELS = ['mistralai/mistral-small-3.1-24b', 'llama-3.1-70b-instruct', 'llama-3.1-8b-instruct', 'meta/llama3.2-1b/instruct-fp16'] as const
 
 export type FlowerModelId = (typeof FLOWER_MODELS)[number]
 
@@ -79,7 +74,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
     // Convert messages to Flower format, including tool calls and results
     const flowerMessages = messages.map((msg) => {
       let content: string
-      
+
       if (typeof msg.content === 'string') {
         content = msg.content
       } else {
@@ -108,17 +103,17 @@ export class FlowerLanguageModel implements LanguageModelV2 {
           })
           .join('')
       }
-      
+
       return {
         role: msg.role,
         content,
       }
     })
-    
+
     // If tools are provided, add them to the system prompt
     let systemPromptAddition = ''
     if (options.tools && options.tools.length > 0) {
-      const functionTools = options.tools.filter(t => t.type === 'function')
+      const functionTools = options.tools.filter((t) => t.type === 'function')
       if (functionTools.length > 0) {
         systemPromptAddition = '\n\nYou have access to the following tools:\n'
         functionTools.forEach((tool) => {
@@ -133,7 +128,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
         systemPromptAddition += 'Always ensure the JSON is valid and the tool name matches exactly.\n'
       }
     }
-    
+
     // Add tool instructions to the system message if present
     if (systemPromptAddition && flowerMessages.length > 0 && flowerMessages[0].role === 'system') {
       flowerMessages[0].content += systemPromptAddition
@@ -178,10 +173,10 @@ export class FlowerLanguageModel implements LanguageModelV2 {
       // Parse the response for tool calls
       const content: LanguageModelV2Content[] = []
       let finishReason: LanguageModelV2FinishReason = 'stop'
-      
+
       // Check if the response contains a tool call
       const toolCallMatch = text.match(/```json\s*\n\s*(\{.*?"tool".*?\})\s*\n\s*```/s)
-      
+
       if (toolCallMatch) {
         try {
           const toolCall = JSON.parse(toolCallMatch[1])
@@ -191,7 +186,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
             if (beforeToolCall) {
               content.push({ type: 'text', text: beforeToolCall })
             }
-            
+
             // Add the tool call
             content.push({
               type: 'tool-call',
@@ -200,13 +195,13 @@ export class FlowerLanguageModel implements LanguageModelV2 {
               toolName: toolCall.tool,
               args: JSON.stringify(toolCall.arguments),
             } as LanguageModelV2Content)
-            
+
             // Add any text after the tool call
             const afterToolCall = text.substring(text.indexOf(toolCallMatch[0]) + toolCallMatch[0].length).trim()
             if (afterToolCall) {
               content.push({ type: 'text', text: afterToolCall })
             }
-            
+
             finishReason = 'tool-calls'
           } else {
             // Invalid tool call format, treat as regular text
@@ -241,7 +236,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
     } catch (error) {
       if (error instanceof Error) {
         if (error.message.includes('does not exist')) {
-          throw new NoSuchModelError({ 
+          throw new NoSuchModelError({
             modelId: this.modelId,
             modelType: 'languageModel',
           })
@@ -251,9 +246,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
     }
   }
 
-  async doStream(
-    options: LanguageModelV2CallOptions
-  ): Promise<{
+  async doStream(options: LanguageModelV2CallOptions): Promise<{
     stream: ReadableStream<LanguageModelV2StreamPart>
     rawCall?: { rawPrompt: unknown; rawSettings: Record<string, any> }
   }> {
@@ -262,7 +255,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
     // Convert messages to Flower format, reusing the same logic as doGenerate
     const flowerMessages = messages.map((msg) => {
       let content: string
-      
+
       if (typeof msg.content === 'string') {
         content = msg.content
       } else {
@@ -291,17 +284,17 @@ export class FlowerLanguageModel implements LanguageModelV2 {
           })
           .join('')
       }
-      
+
       return {
         role: msg.role,
         content,
       }
     })
-    
+
     // If tools are provided, add them to the system prompt
     let systemPromptAddition = ''
     if (options.tools && options.tools.length > 0) {
-      const functionTools = options.tools.filter(t => t.type === 'function')
+      const functionTools = options.tools.filter((t) => t.type === 'function')
       if (functionTools.length > 0) {
         systemPromptAddition = '\n\nYou have access to the following tools:\n'
         functionTools.forEach((tool) => {
@@ -316,7 +309,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
         systemPromptAddition += 'Always ensure the JSON is valid and the tool name matches exactly.\n'
       }
     }
-    
+
     // Add tool instructions to the system message if present
     if (systemPromptAddition && flowerMessages.length > 0 && flowerMessages[0].role === 'system') {
       flowerMessages[0].content += systemPromptAddition
@@ -350,7 +343,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
               onStreamEvent: (event) => {
                 if (event.chunk) {
                   fullText += event.chunk
-                  
+
                   // Check if we're entering a tool call
                   if (!isInToolCall && fullText.includes('```json')) {
                     isInToolCall = true
@@ -367,7 +360,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
                   } else if (isInToolCall) {
                     // Accumulate tool call data
                     toolCallBuffer += event.chunk
-                    
+
                     // Check if tool call is complete
                     if (toolCallBuffer.includes('```\n') || toolCallBuffer.includes('```')) {
                       const match = toolCallBuffer.match(/```json\s*\n\s*(\{.*?\})\s*\n?\s*```/s)
@@ -423,7 +416,7 @@ export class FlowerLanguageModel implements LanguageModelV2 {
           // Send finish event
           // Check if the full text contains tool calls to set the correct finish reason
           const hasToolCall = fullText.includes('```json') && fullText.match(/```json\s*\n\s*(\{.*?"tool".*?\})\s*\n\s*```/s)
-          
+
           controller.enqueue({
             type: 'finish',
             finishReason: hasToolCall ? 'tool-calls' : 'stop',
@@ -433,11 +426,6 @@ export class FlowerLanguageModel implements LanguageModelV2 {
               totalTokens: undefined,
             },
           })
-
-          // Send warning if encryption was disabled
-          if (!encryptionUsed) {
-            console.warn('Flower chat completed without encryption due to server limitations')
-          }
 
           controller.close()
         } catch (error) {
@@ -464,7 +452,7 @@ export interface FlowerProvider extends ProviderV2 {
 export function createFlower(options: FlowerSettings = {}): FlowerProvider {
   const createModel = (modelId: FlowerModelId, settings: FlowerModelSettings = {}) => {
     if (!FLOWER_MODELS.includes(modelId)) {
-      throw new NoSuchModelError({ 
+      throw new NoSuchModelError({
         modelId,
         modelType: 'languageModel',
       })
@@ -479,13 +467,13 @@ export function createFlower(options: FlowerSettings = {}): FlowerProvider {
   const provider = Object.assign(createModel, {
     languageModel: createModel,
     textEmbeddingModel: (modelId: string) => {
-      throw new NoSuchModelError({ 
+      throw new NoSuchModelError({
         modelId,
         modelType: 'textEmbeddingModel',
       })
     },
     imageModel: (modelId: string) => {
-      throw new NoSuchModelError({ 
+      throw new NoSuchModelError({
         modelId,
         modelType: 'imageModel',
       })

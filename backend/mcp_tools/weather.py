@@ -271,7 +271,7 @@ weather_client = OpenMeteoWeather()
 @mcp.tool()
 async def get_current_weather(lat: float, lng: float, ctx: Context) -> str:
     """
-    Get the current weather for specified coordinates.
+    Get the current weather for specified coordinates. Call search_locations to find the coordinates if you don't have them.
 
     Args:
         lat: Latitude coordinate
@@ -286,7 +286,7 @@ async def get_weather_forecast(
     lat: float, lng: float, ctx: Context, days: int = 3
 ) -> str:
     """
-    Get the weather forecast for specified coordinates.
+    Get the weather forecast for specified coordinates. Call search_locations to find the coordinates if you don't have them.
 
     Args:
         lat: Latitude coordinate
