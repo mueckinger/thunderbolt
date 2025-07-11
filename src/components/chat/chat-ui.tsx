@@ -4,15 +4,12 @@ import { cn } from '@/lib/utils'
 import { Model, type Prompt } from '@/types'
 import type { UseChatHelpers } from '@ai-sdk/react'
 import { AnimatePresence, motion } from 'framer-motion'
-import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '../ui/button'
-import { Expandable } from '../ui/expandable'
 import { PromptInput } from '../ui/prompt-input'
-import { AgentToolResponse } from './agent-tool-response'
-import { ChatLoadingIndicator } from './chat-loading-indicator'
-import { StreamingMarkdown } from './streaming-markdown'
+import { AssistantMessage } from './assistant-message'
 import { TriggerMessage } from './trigger-message'
+import { UserMessage } from './user-message'
 
 interface ChatUIProps {
   chatHelpers: UseChatHelpers
@@ -190,66 +187,21 @@ export default function ChatUI({ chatHelpers, models, selectedModelId, onModelCh
               if (triggerPrompt && i === 0) {
                 return null
               }
+
               if (message.role === 'assistant') {
                 return (
-                  <div key={i} className="flex flex-col gap-2 max-w-full">
-                    {message.parts.map((part, partIdx) => {
-                      const isLastMessage = i === chatHelpers.messages.length - 1
-                      const isLastPart = partIdx === message.parts.length - 1
-
-                      switch (part.type) {
-                        case 'text':
-                          return (
-                            <div key={partIdx} className="space-y-2 p-4 rounded-md bg-secondary mr-auto w-full">
-                              <StreamingMarkdown
-                                content={part.text}
-                                isStreaming={isStreaming && isLastMessage && isLastPart}
-                                className="text-secondary-foreground leading-relaxed"
-                              />
-                            </div>
-                          )
-                        case 'tool-invocation':
-                          return <AgentToolResponse key={partIdx} part={part} />
-                        case 'reasoning':
-                          return (
-                            <Expandable
-                              key={partIdx}
-                              title={<span className="text-secondary-foreground">Reasoning</span>}
-                              bgColor="bg-secondary"
-                              icon={
-                                chatHelpers.status === 'streaming' && isLastMessage && isLastPart ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-                                ) : (
-                                  <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
-                                )
-                              }
-                              defaultOpen={false}
-                            >
-                              <div className="text-secondary-foreground leading-relaxed text-sm">{part.text}</div>
-                            </Expandable>
-                          )
-                        default:
-                          return null
-                      }
-                    })}
-                  </div>
+                  <AssistantMessage
+                    key={i}
+                    message={message}
+                    isStreaming={isStreaming && i === chatHelpers.messages.length - 1}
+                  />
                 )
               } else if (message.role === 'user') {
-                return message.parts
-                  .filter((part) => part.type === 'text')
-                  .map((part, j) => (
-                    <div key={j} className="p-4 rounded-md max-w-3/4 bg-primary text-primary-foreground ml-auto">
-                      <div className="space-y-2">
-                        <StreamingMarkdown content={part.text} className="text-primary-foreground leading-relaxed" />
-                      </div>
-                    </div>
-                  ))
+                return <UserMessage key={i} message={message} />
               }
+
               return null
             })}
-
-            {/* Show loading indicator when waiting for server response */}
-            {chatHelpers.status === 'submitted' && <ChatLoadingIndicator />}
 
             {/* Show error message if there's an error */}
             {chatHelpers.error && (

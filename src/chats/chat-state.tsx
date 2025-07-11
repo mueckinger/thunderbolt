@@ -117,8 +117,8 @@ export default function ChatState({ id, models, initialMessages, saveMessages }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, selectedModelId])
 
+  // If we don't pass a selectedModelId to the ChatUI, it will warn about changing an input from uncontrolled to controlled
   if (!selectedModelId) {
-    // @todo: show a loading state
     return null
   }
 

@@ -4,8 +4,9 @@ import { Check, Loader2, X } from 'lucide-react'
 import { Expandable } from '../ui/expandable'
 import { ChatMessagePreview } from './message-preview'
 
-export type AgentToolResponseProps = {
+export type ToolInvocationPartProps = {
   part: ToolInvocationUIPart
+  isStreaming: boolean
 }
 
 function getToolIcon(status: 'running' | 'complete' | 'error') {
@@ -23,7 +24,7 @@ function getToolIcon(status: 'running' | 'complete' | 'error') {
   }
 }
 
-export const AgentToolResponse = ({ part }: AgentToolResponseProps) => {
+export const ToolInvocationPart = ({ part }: ToolInvocationPartProps) => {
   // Get metadata using function-based approach (synchronous)
   const metadata = getToolMetadata(part.toolInvocation.toolName, part.toolInvocation.args)
 

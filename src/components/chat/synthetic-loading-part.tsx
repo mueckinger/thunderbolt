@@ -1,11 +1,16 @@
 import { Loader2 } from 'lucide-react'
 import { Expandable } from '../ui/expandable'
 
-interface ChatLoadingIndicatorProps {
+interface SyntheticLoadingPartProps {
   message?: string
+  isStreaming?: boolean
 }
 
-export const ChatLoadingIndicator = ({ message = '' }: ChatLoadingIndicatorProps) => {
+export const SyntheticLoadingPart = ({ message = '', isStreaming }: SyntheticLoadingPartProps) => {
+  if (!isStreaming) {
+    return null
+  }
+
   const displayMessage = message && message.trim().length > 0 ? message : '\u00A0'
 
   const titleNode = <span className="text-sm text-secondary-foreground">{displayMessage}</span>

@@ -1,5 +1,6 @@
 import { DatabaseSingleton } from '@/db/singleton'
-import { modelsTable, settingsTable } from '@/db/tables'
+import { modelsTable } from '@/db/tables'
+import { getSetting } from '@/lib/dal'
 import { Model, SaveMessagesFunction } from '@/types'
 import { createOpenAI } from '@ai-sdk/openai'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
@@ -75,7 +76,7 @@ export const createModel = async (modelConfig: Model): Promise<LanguageModel> =>
     }
     case 'openrouter': {
       if (!modelConfig.apiKey) throw new Error('No API key provided')
-      // Using OpenAI-compatible approach until OpenRouter SDK v2 branch is stable
+      // Using OpenAI-compatible approach until @openrouter/ai-sdk-provider supports Vercel AI SDK v5
       // https://github.com/OpenRouterTeam/ai-sdk-provider/pull/77
       const openrouter = createOpenAICompatible({
         name: 'openrouter',
@@ -107,14 +108,10 @@ export const aiFetchStreamingResponse = async ({
 
     const db = DatabaseSingleton.instance.db
 
-    const locationNameResult = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_name')).get()
-    const locationLatResult = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_lat')).get()
-    const locationLngResult = await db.select().from(settingsTable).where(eq(settingsTable.key, 'location_lng')).get()
-    const preferredNameResult = await db
-      .select()
-      .from(settingsTable)
-      .where(eq(settingsTable.key, 'preferred_name'))
-      .get()
+    const locationName = await getSetting<string>('location_name')
+    const locationLat = await getSetting<string>('location_lat')
+    const locationLng = await getSetting<string>('location_lng')
+    const preferredName = await getSetting<string>('preferred_name')
 
     const model = await db.query.modelsTable.findFirst({
       where: eq(modelsTable.id, modelId),
@@ -129,37 +126,20 @@ export const aiFetchStreamingResponse = async ({
       const availableTools = await getAvailableTools()
       toolset = { ...createToolset(availableTools) }
 
-      if (mcpClients && mcpClients.length > 0) {
-        try {
-          for (const mcpClient of mcpClients) {
-            const mcpTools = await mcpClient.tools()
-            Object.assign(toolset, mcpTools)
-          }
-          console.log(`MCP tools loaded successfully from ${mcpClients.length} clients`)
-        } catch (error) {
-          console.error('Failed to load MCP tools:', error)
-        }
-      } else {
-        console.warn('No MCP clients available, MCP tools will not be included')
+      for (const mcpClient of mcpClients || []) {
+        const mcpTools = await mcpClient.tools()
+        Object.assign(toolset, mcpTools)
       }
     } else {
       console.log('Model does not support tools, skipping tool setup')
     }
 
     const systemPrompt = createPrompt({
-      preferredName: preferredNameResult?.value as string,
+      preferredName: preferredName as string,
       location: {
-        name: locationNameResult?.value as string,
-        lat: locationLatResult?.value
-          ? typeof locationLatResult.value === 'number'
-            ? locationLatResult.value
-            : parseFloat(locationLatResult.value as string)
-          : undefined,
-        lng: locationLngResult?.value
-          ? typeof locationLngResult.value === 'number'
-            ? locationLngResult.value
-            : parseFloat(locationLngResult.value as string)
-          : undefined,
+        name: locationName as string,
+        lat: locationLat ? parseFloat(locationLat as string) : undefined,
+        lng: locationLng ? parseFloat(locationLng as string) : undefined,
       },
     })
 
