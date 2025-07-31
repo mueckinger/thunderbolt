@@ -8,6 +8,7 @@ import {
   getGoogleCredentials,
   getHeader,
   parseEmailAddress,
+  transformDriveQuery,
   truncateText,
 } from './utils'
 
@@ -83,17 +84,11 @@ export const searchDriveSchema = z
   .object({
     query: z
       .string()
-      .describe('Search query for Google Drive files (supports Drive search syntax like "type:pdf" or "name:contract")'),
-    max_results: z
-      .number()
-      .optional()
-      .default(20)
-      .describe('Maximum number of files to return (default: 20, max: 50)'),
-    include_trashed: z
-      .boolean()
-      .optional()
-      .default(false)
-      .describe('Include files in trash folder'),
+      .describe(
+        'Search query for Google Drive files (supports Drive search syntax like "type:pdf", "name:contract", or "modifiedTime>2024-01-01T00:00:00Z"). Use RFC 3339 format for dates.',
+      ),
+    max_results: z.number().optional().default(20).describe('Maximum number of files to return (default: 20, max: 50)'),
+    include_trashed: z.boolean().optional().default(false).describe('Include files in trash folder'),
   })
   .strict()
 
@@ -545,14 +540,17 @@ export const searchDrive = async (params: SearchDriveParams) => {
 
   const searchParams = new URLSearchParams()
   searchParams.set('pageSize', Math.min(params.max_results, 50).toString())
-  searchParams.set('fields', 'files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents,description,shared,ownedByMe),nextPageToken')
-  
+  searchParams.set(
+    'fields',
+    'files(id,name,mimeType,size,createdTime,modifiedTime,webViewLink,webContentLink,parents,description,shared,ownedByMe),nextPageToken',
+  )
+
   // Build the search query
-  let searchQuery = params.query
+  let searchQuery = transformDriveQuery(params.query)
   if (!params.include_trashed) {
     searchQuery = searchQuery ? `${searchQuery} and trashed=false` : 'trashed=false'
   }
-  
+
   if (searchQuery) {
     searchParams.set('q', searchQuery)
   }
@@ -671,7 +669,7 @@ export const getDriveFileContent = async (params: GetDriveFileContentParams): Pr
         error: 'Access denied. Make sure you have permission to read this file.',
       }
     }
-    
+
     if (error.response?.status === 404) {
       return {
         file_id: params.file_id,
@@ -749,7 +747,8 @@ export const configs: ToolConfig[] = [
   },
   {
     name: 'google_search_drive',
-    description: 'Search Google Drive files using Drive API query syntax (e.g. "type:pdf name:contract" or "modifiedTime>2024-01-01")',
+    description:
+      'Search Google Drive files using Drive API query syntax (e.g. "type:pdf name:contract" or "modifiedTime>2024-01-01T00:00:00Z"). Use RFC 3339 format for dates.',
     verb: 'Searching Google Drive',
     parameters: searchDriveSchema,
     execute: searchDrive,
