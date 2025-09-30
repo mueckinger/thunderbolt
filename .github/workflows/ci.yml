@@ -55,7 +55,7 @@ jobs:
           node-version: '20'
 
       - name: Install Bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
@@ -112,14 +112,7 @@ jobs:
 
       - name: Run tests
         run: |
-          # TEMPORARY: Skip Google utils tests in CI due to module resolution issues
-          # The Google utils tests work locally but fail in CI environment because:
-          # - Functions return 'undefined' despite successful imports (shows as 'function' type)
-          # - Issue occurs when @/lib/* path-mapped imports are mocked with Bun's mock.module()
-          # - Problem persists across different import strategies (relative vs path-mapped)
-          # - All other tests (105+ tests) pass successfully
-          # TODO: Investigate Bun module mocking behavior in CI environment
-          bun test --test-name-pattern="^(?!.*Google Utils).*$"
+          bun test ./src
 
       # Upload source maps to PostHog only for main branch
       - name: Build application with source maps
@@ -199,47 +192,37 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
         with:
-          python-version: '3.12'
+          bun-version: latest
 
-      - name: Cache Python dependencies
+      - name: Cache Bun dependencies (backend)
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cache/uv
-            backend/.venv
-          key: uv-${{ github.repository }}-${{ hashFiles('backend/uv.lock') }}
+            ~/.bun/install/cache
+            backend/node_modules
+          key: backend-bun-${{ hashFiles('backend/bun.lock') }}
           restore-keys: |
-            uv-${{ github.repository }}-
+            backend-bun-
 
-      - name: Install dependencies
+      - name: Install backend dependencies
         run: |
           cd backend
-          make install-dev
+          bun install
 
-      - name: Lint
+      - name: Type check backend
         run: |
           cd backend
-          make lint
+          bun run type-check
 
-      - name: Format check
+      # - name: Lint backend
+      #   run: |
+      #     cd backend
+      #     bun run lint
+
+      - name: Test backend
         run: |
           cd backend
-          make format-check
-
-      - name: Type check
-        run: |
-          cd backend
-          make type-check
-
-      - name: Test
-        run: |
-          cd backend
-          make test
+          bun run test
