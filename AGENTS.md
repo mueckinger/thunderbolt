@@ -1,20 +1,44 @@
-- **_Bias towards tasteful simplicity over defensiveness or over-optimization._**
-- Prefer `bun` over `npm`
-- Prefer TypeScript arrow functions over `function`
+## Core Principles
+
+- **Bias towards tasteful simplicity** - favor elegant, readable, maintainable solutions that add minimal complexity. Avoid over-engineering, premature optimization, and defensive coding patterns that obscure intent.
+- **Always implement proper, architectural solutions** - no shortcuts, hacky fixes, or temporary workarounds. Research best practices when needed.
+- **Prefer optimistic code over defensive code** - let errors surface loudly during development rather than wrapping everything in if-checks and try/catch blocks. Handle errors architecturally at higher levels (e.g., error handling middleware).
+- **Question and recommend alternatives** - your goal is better outcomes, not blind execution. Stop and ask for input when appropriate.
+
+## TypeScript & Code Style
+
+- Never use `any` in TypeScript
 - Prefer `type` over `interface`
-- Prefer `ky` over `fetch`
+- Prefer arrow functions over `function` keyword
+- Prefer `const` over `let` - create helper functions with early return instead of setting `let` variables inside conditionals
 - Prefer early return over long if statements and nested code
-- Prefer `useEffect` over `React.useEffect` etc
+- Use direct imports: `useEffect` not `React.useEffect`
+- Prefer async/await over .then/.catch
+- Add JSDoc comments to new utility functions
+- Only comment non-obvious code - avoid useless comments like "// Save data collection mutation" before `saveDataCollection()`
 - Loosely prefer one React component per file
-- Always add JSDOC comments to new utility functions
-- Heavily prefer using `const` over `let` and create helper functions with early return instead of setting `let` variables inside of if statements.
-- Only add comments if it helps clarify unusual, confusing, or hard to read code - don't just add it before every line
-- Example of useless comment: "// Save data collection mutation" just before the method "saveDataCollection"
-- Aim for concise, readable, maintainable, and robust code that is very clear and well-written
-- Prefer optimistic code over defensive code in order to keep the code clean and concise - do not wrap everything in try/catch statements defensively - instead aim to handle edge cases and errors through deeper understanding of what is really likely to fail, when, and why. Aim to have errors caught at a higher level such as error handling middleware.
-- Research best practices and available libraries before implementing new features and look at how other respected projects are structuring their code and approaching problems
-- You can always stop and ask for input or recommend alternatives to what I'm suggesting - your job is to achieve overall better outcomes for this project, not to blindly respond to commands
-- After each task
-  - Consider whether code should be refactored or abstracted out into standalone functions for organization and clarity
-  - Remove unused variables / imports
-  - Ensure that there are no type warnings or errors
+
+## Tooling & Libraries
+
+- Use `bun` instead of `npm`
+- Use `bun test` instead of `vitest`
+- Install latest versions: `bun add <package>@latest`
+- Prefer `ky` over `fetch`
+- Generate Drizzle migrations with `bun db generate` - never manually create SQL files
+- Use `resolve-library-id` and `get-library-docs` tools for library documentation (if unavailable, request access)
+
+## React Patterns
+
+- Use `useReducer` when a component needs 3+ `useState` hooks
+- Abstract state/logic into `use[Component]State()` hooks to separate computation from display logic and enable unit testing
+
+## Testing
+
+- Create test files as `<file>.test.ts` next to source files
+- Test likely edge cases, aiming for useful 80% coverage
+
+## After Each Task
+
+- Consider refactoring into standalone functions for clarity
+- Remove unused variables and imports
+- Verify tests pass and no TypeScript errors exist
