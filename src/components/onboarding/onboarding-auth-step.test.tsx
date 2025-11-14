@@ -1,16 +1,17 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { describe, it, beforeEach, afterEach, expect, mock } from 'bun:test'
-import '@testing-library/jest-dom'
-import { OnboardingAuthStep } from './onboarding-auth-step'
+import { resetTestDatabase, setupTestDatabase } from '@/dal/test-utils'
 import { createQueryTestWrapper } from '@/test-utils/react-query'
-import { setupTestDatabase, resetTestDatabase } from '@/dal/test-utils'
+import '@testing-library/jest-dom'
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, mock, spyOn } from 'bun:test'
+import { getClock } from '@/testing-library'
+import { OnboardingAuthStep } from './onboarding-auth-step'
 
 // Mock props
 const mockOnConnectionChange = mock()
 
 // Mock useOAuthConnect hook
 const mockOAuthConnect = {
-  connect: mock(),
+  connect: mock(() => Promise.resolve()),
   processCallback: mock(),
 }
 
@@ -30,6 +31,11 @@ mock.module('react-router', () => ({
 }))
 
 describe('OnboardingAuthStep', () => {
+  beforeAll(() => {
+    // Suppress console.error for expected error scenarios in tests
+    spyOn(console, 'error').mockImplementation(() => {})
+  })
+
   beforeEach(async () => {
     await setupTestDatabase()
     mockOnConnectionChange.mockClear()
@@ -70,11 +76,15 @@ describe('OnboardingAuthStep', () => {
   })
 
   describe('User interactions', () => {
-    it('should handle connect button click', () => {
+    it('should handle connect button click', async () => {
       renderComponent()
 
       const connectButton = screen.getByRole('button', { name: /Connect Google/i })
       fireEvent.click(connectButton)
+
+      await act(async () => {
+        await getClock().runAllAsync()
+      })
 
       expect(mockOAuthConnect.connect).toHaveBeenCalledWith('google')
     })
@@ -85,15 +95,23 @@ describe('OnboardingAuthStep', () => {
       const connectButton = screen.getByRole('button', { name: /Connect Google/i })
       fireEvent.click(connectButton)
 
-      // Component should still render without crashing
+      // Wait for async state updates
+      await act(async () => {
+        await getClock().runAllAsync()
+      })
+
       expect(connectButton).toBeInTheDocument()
     })
 
-    it('should handle loading state during connection', () => {
+    it('should handle loading state during connection', async () => {
       renderComponent()
 
       const connectButton = screen.getByRole('button', { name: /Connect Google/i })
       fireEvent.click(connectButton)
+
+      await act(async () => {
+        await getClock().runAllAsync()
+      })
 
       expect(connectButton).toBeInTheDocument()
     })
@@ -241,9 +259,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle navigation after OAuth callback', async () => {
@@ -254,9 +274,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with empty code', async () => {
@@ -369,9 +391,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with server error', async () => {
@@ -379,9 +403,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with temporary error', async () => {
@@ -389,9 +415,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
   })
 
@@ -479,9 +507,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with invalid grant', async () => {
@@ -489,9 +519,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with unsupported response type', async () => {
@@ -499,9 +531,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with invalid scope', async () => {
@@ -509,9 +543,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with invalid request', async () => {
@@ -519,9 +555,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with unknown error', async () => {
@@ -529,9 +567,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with empty error', async () => {
@@ -539,9 +579,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with null error', async () => {
@@ -549,9 +591,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
 
     it('should handle OAuth callback with undefined error', async () => {
@@ -559,9 +603,11 @@ describe('OnboardingAuthStep', () => {
 
       renderComponent()
 
-      await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
+      await act(async () => {
+        await getClock().runAllAsync()
       })
+
+      expect(mockNavigate).toHaveBeenCalledWith('.', { replace: true, state: null })
     })
   })
 
@@ -585,7 +631,9 @@ describe('OnboardingAuthStep', () => {
       const connectButton = screen.getByRole('button', { name: /Connect Google/i })
       fireEvent.click(connectButton)
 
-      expect(mockOAuthConnect.connect).toHaveBeenCalledWith('google')
+      await waitFor(() => {
+        expect(mockOAuthConnect.connect).toHaveBeenCalledWith('google')
+      })
     })
 
     it('should handle OAuth processing failure without crashing', async () => {

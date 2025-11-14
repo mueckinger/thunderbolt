@@ -1,8 +1,9 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it, mock } from 'bun:test'
+import { resetTestDatabase, setupTestDatabase, teardownTestDatabase } from '@/dal/test-utils'
+import { mockLocationData } from '@/test-utils/http-client'
+import { createTestProvider } from '@/test-utils/test-provider'
 import { render, waitFor } from '@testing-library/react'
-import { setupTestDatabase, resetTestDatabase, teardownTestDatabase } from '@/dal/test-utils'
+import { afterAll, afterEach, beforeAll, describe, expect, it, mock, spyOn } from 'bun:test'
 import { OnboardingDialog } from './onboarding-dialog'
-import { createQueryTestWrapper } from '@/test-utils/react-query'
 
 // Mock React Router
 const mockNavigate = mock()
@@ -15,6 +16,8 @@ mock.module('react-router', () => ({
 
 beforeAll(async () => {
   await setupTestDatabase()
+  // Suppress console.error for expected error scenarios in tests
+  spyOn(console, 'error').mockImplementation(() => {})
 })
 
 afterAll(async () => {
@@ -51,7 +54,7 @@ describe('OnboardingDialog', () => {
       })
 
       render(<OnboardingDialog />, {
-        wrapper: createQueryTestWrapper(),
+        wrapper: createTestProvider({ mockResponse: mockLocationData }),
       })
     })
 
@@ -73,7 +76,7 @@ describe('OnboardingDialog', () => {
       })
 
       render(<OnboardingDialog />, {
-        wrapper: createQueryTestWrapper(),
+        wrapper: createTestProvider({ mockResponse: mockLocationData }),
       })
     })
 
@@ -95,7 +98,7 @@ describe('OnboardingDialog', () => {
       })
 
       render(<OnboardingDialog />, {
-        wrapper: createQueryTestWrapper(),
+        wrapper: createTestProvider({ mockResponse: mockLocationData }),
       })
     })
   })
@@ -103,7 +106,7 @@ describe('OnboardingDialog', () => {
   describe('Integration with database', () => {
     it('should work with real database operations', async () => {
       render(<OnboardingDialog />, {
-        wrapper: createQueryTestWrapper(),
+        wrapper: createTestProvider({ mockResponse: mockLocationData }),
       })
 
       // The component should integrate with the real database

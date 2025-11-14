@@ -1,6 +1,7 @@
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { extractReasoningMiddleware, streamText, wrapLanguageModel } from 'ai'
 import { describe, expect, it } from 'bun:test'
+import { getClock } from '@/testing-library'
 import fs from 'fs'
 import { join } from 'path'
 import { createSimulatedFetch, normalizeStepResult, parseSseLog } from './util'
@@ -32,8 +33,11 @@ describe('sse', async () => {
       prompt: 'Hello, test!',
     })
 
-    // Consume the stream and get the steps
-    await result.consumeStream()
+    // Run timers to process stream delays
+    const consumePromise = result.consumeStream()
+    await getClock().runAllAsync()
+    await consumePromise
+
     const steps = await result.steps
 
     // Verify we got steps
@@ -57,7 +61,9 @@ describe('sse', async () => {
         middleware: [extractReasoningMiddleware({ tagName: 'think', startWithReasoning: false })],
       })
       const result = streamText({ model: wrappedModel, prompt: 'test' })
-      await result.consumeStream()
+      const consumePromise = result.consumeStream()
+      await getClock().runAllAsync()
+      await consumePromise
       results.push(await result.steps)
     }
 
