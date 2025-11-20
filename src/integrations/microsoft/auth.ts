@@ -1,10 +1,10 @@
 import { getSettings } from '@/dal'
-import type { GoogleUserInfo } from '@/integrations/google/types'
 import type { OAuthConfig, OAuthTokens } from '@/lib/auth'
 import { memoize } from '@/lib/memoize'
-import { isTauri } from '@/lib/platform'
+import { getOAuthRedirectUri } from '@/lib/oauth-redirect'
 import type { AuthProviderBackendConfig } from '@/types'
 import ky from 'ky'
+import type { MicrosoftUserInfo } from './types'
 
 const fetchBackendConfig = memoize(async (): Promise<AuthProviderBackendConfig> => {
   const { cloudUrl } = await getSettings({ cloud_url: 'http://localhost:8000/v1' })
@@ -13,11 +13,11 @@ const fetchBackendConfig = memoize(async (): Promise<AuthProviderBackendConfig> 
 
 export const getOAuthConfig = async (): Promise<OAuthConfig> => {
   const { client_id } = await fetchBackendConfig()
+  const redirectUri = await getOAuthRedirectUri()
+
   return {
     clientId: client_id,
-    redirectUri: isTauri()
-      ? window.location.origin + '/oauth-callback.html'
-      : window.location.origin + '/oauth/callback',
+    redirectUri,
     scope: 'https://graph.microsoft.com/mail.read User.Read offline_access',
   }
 }
@@ -46,7 +46,7 @@ export const exchangeCodeForTokens = async (code: string, codeVerifier: string):
     .json<OAuthTokens>()
 }
 
-export const getUserInfo = async (accessToken: string): Promise<GoogleUserInfo> => {
+export const getUserInfo = async (accessToken: string): Promise<MicrosoftUserInfo> => {
   const response = await fetch('https://graph.microsoft.com/v1.0/me', {
     headers: { Authorization: `Bearer ${accessToken}` },
   })

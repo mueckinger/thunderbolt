@@ -1,8 +1,11 @@
-import { deleteSetting, getSettings, updateSetting } from '@/dal'
-import { exchangeCodeForTokens, getUserInfo, redirectOAuthFlow, type OAuthProvider } from '@/lib/auth'
+import { deleteSetting, getSettings, updateSettings } from '@/dal'
+import { buildAuthUrl, exchangeCodeForTokens, getUserInfo, redirectOAuthFlow, type OAuthProvider } from '@/lib/auth'
 import { startOAuthFlowWebview } from '@/lib/oauth-webview'
-import { isTauri } from '@/lib/platform'
+import { generateCodeChallenge, generateCodeVerifier } from '@/lib/pkce'
+import { isMobile, isTauri } from '@/lib/platform'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { useState } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 
 type OAuthDependencies = {
   startOAuthFlowWebview?: typeof startOAuthFlowWebview
@@ -15,7 +18,7 @@ type UseOAuthConnectOptions = {
   onSuccess?: () => void
   onError?: (error: Error) => void
   setPreferredName?: boolean
-  returnContext?: 'onboarding' | 'integrations'
+  returnContext?: string
   dependencies?: OAuthDependencies
 }
 
@@ -52,11 +55,13 @@ const saveOAuthCredentials = async (
     },
   }
 
-  await updateSetting(`integrations_${provider}_credentials`, JSON.stringify(credentials))
-  await updateSetting(`integrations_${provider}_is_enabled`, 'true')
+  await updateSettings({
+    [`integrations_${provider}_credentials`]: JSON.stringify(credentials),
+    [`integrations_${provider}_is_enabled`]: 'true',
+  })
 
   if (options.setPreferredName && userInfo.name) {
-    await updateSetting('preferred_name', userInfo.name)
+    await updateSettings({ preferred_name: userInfo.name })
   }
 }
 
@@ -84,17 +89,43 @@ export const useOAuthConnect = (options: UseOAuthConnectOptions = {}): UseOAuthC
 
     try {
       if (isTauri()) {
-        const result = await startFlow(provider)
+        // Check if we're on mobile (iOS or Android)
+        if (isMobile()) {
+          // For mobile: Open OAuth in system browser with App Link / Universal Link redirect
+          // The deep link listener will handle the callback
+          const state = uuidv4()
+          const codeVerifier = generateCodeVerifier()
+          const codeChallenge = await generateCodeChallenge(codeVerifier)
 
-        if (!result) return
+          // Store OAuth state for callback validation
+          await updateSettings({
+            oauth_state: state,
+            oauth_provider: provider,
+            oauth_verifier: codeVerifier,
+            oauth_return_context: returnContext,
+          })
 
-        const { tokens, userInfo } = result
+          const authUrl = await buildAuthUrl(provider, state, codeChallenge)
 
-        await saveOAuthCredentials(provider, tokens, userInfo, { setPreferredName })
+          // Open in system browser (not webview)
+          await openUrl(authUrl)
 
-        onSuccess?.()
+          // The callback will be handled by the deep link listener
+        } else {
+          // For desktop: Use webview flow
+          const result = await startFlow(provider)
+
+          if (!result) return
+
+          const { tokens, userInfo } = result
+
+          await saveOAuthCredentials(provider, tokens, userInfo, { setPreferredName })
+
+          onSuccess?.()
+        }
       } else {
-        await updateSetting('oauth_return_context', returnContext)
+        // For web: Use redirect flow
+        await updateSettings({ oauth_return_context: returnContext })
         await redirect(provider)
       }
     } catch (e: unknown) {

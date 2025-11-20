@@ -1,7 +1,7 @@
 import { getSettings } from '@/dal'
 import type { OAuthConfig, OAuthTokens } from '@/lib/auth'
 import { memoize } from '@/lib/memoize'
-import { isTauri } from '@/lib/platform'
+import { getOAuthRedirectUri } from '@/lib/oauth-redirect'
 import type { AuthProviderBackendConfig } from '@/types'
 import ky from 'ky'
 import type { GoogleUserInfo } from './types'
@@ -13,11 +13,11 @@ const fetchBackendConfig = memoize(async (): Promise<AuthProviderBackendConfig> 
 
 export const getOAuthConfig = async (): Promise<OAuthConfig> => {
   const { client_id } = await fetchBackendConfig()
+  const redirectUri = await getOAuthRedirectUri()
+
   return {
     clientId: client_id,
-    redirectUri: isTauri()
-      ? window.location.origin + '/oauth-callback.html'
-      : window.location.origin + '/oauth/callback',
+    redirectUri,
     scope: [
       'email',
       'profile',
