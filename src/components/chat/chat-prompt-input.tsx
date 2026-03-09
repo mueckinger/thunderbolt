@@ -51,6 +51,11 @@ export const ChatPromptInput = forwardRef<ChatPromptInputRef, ChatPromptInputPro
 
     const isStreaming = status === 'streaming'
 
+    // isMobile = viewport is narrow (responsive breakpoint, e.g. desktop browser resized small)
+    // isPlatformMobile() = native platform is iOS/Android (Tauri mobile app)
+    // Either condition means we prefer mobile-style input where Enter inserts a newline.
+    const shouldInsertNewlineOnEnter = isMobile || isPlatformMobile()
+
     // Use a stable "new" key for unsaved chats so the draft persists across /chats/new navigations
     const draftKey = chatThread ? chatThreadId : 'new'
     const [showOverflowModal, setShowOverflowModal] = useState(false)
@@ -146,7 +151,7 @@ export const ChatPromptInput = forwardRef<ChatPromptInputRef, ChatPromptInputPro
           isStreaming={isStreaming}
           onStop={stop}
           autoFocus={!isMobile}
-          submitOnEnter={!isStreaming && !isPlatformMobile()}
+          submitOnEnter={!isStreaming && !shouldInsertNewlineOnEnter}
           className={cn(
             'flex flex-col bg-background dark:bg-input/30 border dark:border-input rounded-2xl w-full',
             isMobile ? 'gap-0 p-4' : 'gap-2 p-3',
